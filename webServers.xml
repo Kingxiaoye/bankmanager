@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="b4f27482-5fb7-4a58-8ad5-968d319c0a0e" name="10.192.54.63" url="http://10.192.54.63">
+        <fileTransfer host="10.192.54.63" port="55555" rootFolder="/root/bankmanager" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="55555" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
