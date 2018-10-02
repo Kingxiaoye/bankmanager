@@ -547,8 +547,9 @@ int user_transfer()
 			count=fread(transfer_userinfo,sizeof(user_info),1,fp);
 			if(count>0)
 			{
-				if(0 == strncmp(transfer_userinfo->name,client_userinfo->transfer_name,sizeof(userinfo->name)))
+				if(transfer_userinfo->id == client_userinfo->transfer_id)
 				{
+					printf("===\n");
 					break;
 				}
 			}
@@ -560,22 +561,34 @@ int user_transfer()
 	{
 		printf("%s--%f\n",transfer_userinfo->name,transfer_userinfo->money);
 		transfer_userinfo->money += client_userinfo->tmp_money;
+		printf("%f\n",transfer_userinfo->money);
 		if(0 == save(transfer_userinfo))
 		{
 			userinfo->money -= client_userinfo->tmp_money;
-			return SUCCESS;
+			if(0 == save(userinfo))
+			{
+				free(transfer_userinfo);
+				transfer_userinfo = NULL;
+				return SUCCESS;
+			}
 		}
 		else
 		{
+			free(transfer_userinfo);
+			transfer_userinfo = NULL;
 			printf("更新转账数据失败！！！\n");
 			return UPDATE_USERINFO_ERROR;
 		}
 	}
 	else
 	{
+		free(transfer_userinfo);
+		transfer_userinfo = NULL;
 		printf("转账账户不存在！！！\n");
 		return NO_USER_INFO;
 	}
+	free(transfer_userinfo);
+	transfer_userinfo = NULL;
 	return 0;
 }
 
