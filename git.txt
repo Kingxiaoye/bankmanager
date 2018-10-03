@@ -1,0 +1,24 @@
+sudo apt-get install git
+  304  git init
+  305  git add .
+  306  git commit -m "first commit"
+  307  git config --global user.email "you@example.com"
+  308  git config --global user.name "Your Name"
+  309  git commit
+  310  git commit -m "first commit"
+  311  git remote add origin git@github.com:Kingxiaoye/bankmanager
+  312  git push -u origin master 
+  313  ssh-keygen -t rsa -C "you@example.com"
+  314  cat /home/wangye11/.ssh/id_rsa.pub
+  315  git push -u origin master 
+  316  git log
+  317* 
+  318  git clone git@github.com:Kingxiaoye/bankmanager.git
+  319  cd bankmanager/
+  320  LS
+  321  ls
+  322  cd ..
+  323  rm -rf bankmanager
+  324  ls
+  325  git log
+
