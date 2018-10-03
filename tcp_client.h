@@ -58,6 +58,7 @@ void userwithdraw(void* arg,client_user *x);
 float getmoney();
 void user_quiry(void* arg,client_user *x);
 void usertransfer(void* arg,client_user *x);
+void change_password(void* arg,client_user *x);
 
 
 #endif /* TCP_CLIENT_H_ */

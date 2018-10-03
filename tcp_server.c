@@ -222,6 +222,13 @@ void* message_handle(void *arg)
 				server_userinfo->flag = 1;
 				printf("查询成功，查询信息已发送！！！\n");
 			}
+        	else
+        	{
+        		s1_to_s2(userinfo,server_userinfo);
+        		//strncpy(server_userinfo->password,client_userinfo->password,sizeof(client_userinfo->password));
+        		server_userinfo->flag = 0;
+        		printf("查询失败%d--  %s\n",server_userinfo->flag,server_userinfo->password);
+        	}
 			send(*sockfd,server_userinfo, sizeof(client_user),0);
         }
         else if(USER_TRANSFER == client_userinfo->msg)
@@ -243,6 +250,21 @@ void* message_handle(void *arg)
         	}
 			send(*sockfd,server_userinfo, sizeof(client_user),0);
         }
+        else if(USER_CHANGE_PASSWORD == client_userinfo->msg)
+		{
+        	ret = user_change_password();
+        	if(SUCCESS == ret)
+			{
+				s1_to_s2(userinfo,server_userinfo);
+				server_userinfo->flag = 1;
+				printf("密码修改成功！！！\n");
+			}
+        	else
+        	{
+        		printf("密码修改失败！！！\n");
+        	}
+        	send(*sockfd,server_userinfo, sizeof(client_user),0);
+		}
     }
     close(*sockfd);
     return NULL;
@@ -592,3 +614,30 @@ int user_transfer()
 	return 0;
 }
 
+int user_change_password()
+{
+	int ret = 0;
+	ret = user_info_match();
+	/*新密码也可以和原密码相同*/
+	if(ret == PASSWORD_ERROR||ret == SUCCESS)
+	{
+		snprintf(userinfo->password,sizeof(userinfo->password),client_userinfo->password);
+		if(0 == save(userinfo))
+		{
+			//printf("%s\n",userinfo->password);
+			//printf("密码修改成功！！！\n");
+			return SUCCESS;
+		}
+		else
+		{
+
+			return UPDATE_USERINFO_ERROR;
+		}
+
+	}
+	else
+	{
+		return FALSE;
+	}
+	return 0;
+}

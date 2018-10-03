@@ -80,6 +80,7 @@ int user_info_match();
 int save(user_info* ap);
 int user_quiry();
 int user_transfer();
+int user_change_password();
 
 
 

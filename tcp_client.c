@@ -15,7 +15,6 @@ int main(int argc, char *argv[])
 
     /*客户端*/
     int* client_sockfd;
-    int len;
     struct sockaddr_in remote_addr; //服务器端网络地址结构体    
 
     client_sockfd = malloc(sizeof(int));
@@ -319,6 +318,9 @@ int client_usermenu(void* arg,client_user *x)
         case 5: system("clear");
         	usertransfer(client_sockfd,x);
         	break;
+        case 6: system("clear");
+        	change_password(client_sockfd,x);
+        	break;
         case 0: system("clear");
         	return 1;
         	break;
@@ -504,6 +506,88 @@ void usertransfer(void* arg,client_user *x)
 	else
 	{
 		printf("密码错误！！！\n");
+	}
+	return;
+}
+
+void change_password(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	char tmp[9];
+	char password[9];
+	/*第一次发消息确认是本人操作*/
+	printf("请输入原密码：\n");
+	scanf("%8s",password);
+	fflush(stdin);
+	snprintf(x->password, sizeof(password),"%s",password);
+	x->msg = USER_QUIRY;
+	if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+	{
+		printf("send check userinfo msg error\n");
+	}
+
+	if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+	{
+		printf("recv check userinfo msg error");
+	}
+	printf("123\n");
+	printf("%d---%s\n",server_userinfo->flag,server_userinfo->name);
+	if(1 == server_userinfo->flag)
+	{
+		while(1)
+		{
+			/*第二次发送消息，修改密码*/
+			printf("请输入新密码：\n");
+			scanf("%8s",password);
+			fflush(stdin);
+			snprintf(tmp, sizeof(tmp),"%s",password);
+			/*本地验证二次新密码*/
+			printf("请再次输入新密码：\n");
+			scanf("%s",password);
+			fflush(stdin);
+			if(0 == strncmp(tmp,password,sizeof(tmp)))
+			{
+				snprintf(x->password, sizeof(x->password),"%s",tmp);
+				printf("%s\n",x->password);
+				x->msg = USER_CHANGE_PASSWORD;
+				break;
+			}
+			else
+			{
+				system("clear");
+				printf("两次密码不一致，请重新输入：\n");
+			}
+		}
+		/*第二次发送消息，修改密码*/
+		if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+		{
+			printf("send change password msg error\n");
+		}
+
+		if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+		{
+			printf("recv change password  msg error");
+		}
+		if(1 == server_userinfo->flag)
+		{
+			system("clear");
+			printf("用户%s密码修改成功 ！！！\n",server_userinfo->name);
+			return;
+		}
+		else
+		{
+			system("clear");
+			printf("用户%s密码修改失败 ！！！\n",server_userinfo->name);
+			return;
+		}
+	}
+	else if(0 == server_userinfo->flag)
+	{
+		system("clear");
+		printf("原密码输入错误，用户信息失效,请重新登录！！！\n");
+		welcome(client_sockfd);
+		return;
 	}
 	return;
 }
