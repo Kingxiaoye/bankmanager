@@ -394,7 +394,7 @@ float getmoney()
         fflush(stdin);
         if(money<0)
         {
-            printf("您输入的是无效金额！");
+            printf("您输入的是无效金额！请重新输入！！！\n");
             continue;
         }
         else
@@ -408,6 +408,7 @@ float getmoney()
 void userwithdraw(void* arg,client_user *x)
 {
 	int* client_sockfd = arg;
+	int i = 0;
     char password[6];
     float money=-1;
     int len = 0;
@@ -422,39 +423,47 @@ void userwithdraw(void* arg,client_user *x)
         else
         {
         	client_display(x);
-        	printf("请输入您的取款密码：");
-        	scanf("%s",password);
-        	if(0 == strncmp(password,x->password,sizeof(password)))
+        	for(i = 0;i<3;i++)
         	{
-        		printf("请输入您的取款金额：");
-				money=getmoney();
-				x->money -= money;
-				x->msg = USER_WITHDRAW;//取钱
-				if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
-				{
-					printf("send deposit msg error\n");
-				}
+            	printf("请输入您的取款密码：");
+            	scanf("%s",password);
+            	if(0 == strncmp(password,x->password,sizeof(password)))
+            	{
+            		printf("请输入您的取款金额：");
+    				money=getmoney();
+    				x->money -= money;
+    				x->msg = USER_WITHDRAW;//取钱
+    				if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+    				{
+    					printf("send deposit msg error\n");
+    				}
 
-				if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
-				{
-					printf("recv deposit msg error");
-				}
-				if(server_userinfo->money==x->money)
-				{
-					system("clear");
-					printf("%s\n",server_userinfo->name);
-					printf("取款成功!\n");
-					//getchar();
-					return;
-				}
+    				if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+    				{
+    					printf("recv deposit msg error");
+    				}
+    				if(server_userinfo->money==x->money)
+    				{
+    					system("clear");
+    					printf("%s\n",server_userinfo->name);
+    					printf("取款成功!\n");
+    					//getchar();
+    					return;
+    				}
+            	}
+            	else
+            	{
+            		system("clear");
+            		printf("密码错误！！！\n");
+            		//welcome(client_sockfd);
+            		continue;
+            	}
         	}
-        	else
+        	if(3 == i)
         	{
-        		system("clear");
-        		printf("密码错误！！！\n");
-        		return;
+        		printf("你输入错误已经超过3次！请重新登录！！！\n");
+        		welcome(client_sockfd);
         	}
-
         }
     }
     else
