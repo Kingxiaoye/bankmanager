@@ -427,31 +427,42 @@ void userwithdraw(void* arg,client_user *x)
         	{
             	printf("请输入您的取款密码：");
             	scanf("%s",password);
-            	if(0 == strncmp(password,x->password,sizeof(password)))
-            	{
-            		printf("请输入您的取款金额：");
-    				money=getmoney();
-    				x->money -= money;
-    				x->msg = USER_WITHDRAW;//取钱
-    				if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
-    				{
-    					printf("send deposit msg error\n");
-    				}
+            	snprintf(x->password,sizeof(x->password),"%s",password);
+            	x->msg = USER_QUIRY;
+            	if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+				{
+					printf("send USER_QUIRY msg error\n");
+				}
 
-    				if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
-    				{
-    					printf("recv deposit msg error");
-    				}
-    				if(server_userinfo->money==x->money)
-    				{
-    					system("clear");
-    					printf("%s\n",server_userinfo->name);
-    					printf("取款成功!\n");
-    					//getchar();
-    					return;
-    				}
-            	}
-            	else
+				if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+				{
+					printf("recv USER_QUIRY msg error");
+				}
+				if(1 == server_userinfo->flag)
+				{
+					printf("请输入您的取款金额：");
+					money=getmoney();
+					x->money -= money;
+					x->msg = USER_WITHDRAW;//取钱
+					if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+					{
+						printf("send userwithdraw msg error\n");
+					}
+
+					if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+					{
+						printf("recv userwithdraw msg error");
+					}
+					if(1 == server_userinfo->flag)
+					{
+						system("clear");
+						printf("%s\n",server_userinfo->name);
+						printf("取款成功!\n");
+						//getchar();
+						return;
+					}
+				}
+                else
             	{
             		system("clear");
             		printf("密码错误！！！\n");

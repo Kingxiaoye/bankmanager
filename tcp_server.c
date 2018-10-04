@@ -211,6 +211,11 @@ void* message_handle(void *arg)
         		s1_to_s2(userinfo,server_userinfo);
         		server_userinfo->flag = 1;
         	}
+        	else
+        	{
+        		server_userinfo = client_userinfo;
+        		server_userinfo->flag = 0;
+        	}
         	send(*sockfd,server_userinfo, sizeof(client_user),0);
         }
         else if(USER_QUIRY == client_userinfo->msg)
