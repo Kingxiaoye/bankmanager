@@ -450,6 +450,7 @@ void userwithdraw(void* arg,client_user *x)
         	}
         	else
         	{
+        		system("clear");
         		printf("密码错误！！！\n");
         		return;
         	}
