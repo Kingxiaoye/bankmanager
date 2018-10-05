@@ -118,6 +118,8 @@ int login(void* arg)
 		{
 			while(1)
 			{
+				printf("按回车键进入主菜单！！！\n");
+				getchar();
 				system("clear");
 				ret = client_usermenu(client_sockfd,server_userinfo);
 				if(1 == ret)
@@ -136,6 +138,12 @@ int login(void* arg)
     {
     	system("clear");
     	printf("用户不存在，请尝试注册！！！\n");
+    	return FALSE;
+    }
+    else if(ACCOUNT_STATE_INVALID == server_userinfo->flag)
+    {
+    	system("clear");
+    	printf("用户已销户，请尝试重新注册！！！\n");
     	return FALSE;
     }
     else
@@ -315,6 +323,9 @@ int client_usermenu(void* arg,client_user *x)
         case 3: system("clear");
         	user_quiry(client_sockfd,x);
         	break;
+        case 4: system("clear");
+        	close_acount(client_sockfd,x);
+        	break;
         case 5: system("clear");
         	usertransfer(client_sockfd,x);
         	break;
@@ -322,7 +333,8 @@ int client_usermenu(void* arg,client_user *x)
         	change_password(client_sockfd,x);
         	break;
         case 0: system("clear");
-        	return 1;
+        	close(*client_sockfd);//关闭套接字 
+        	exit(0);
         	break;
         default: system("clear");
             printf("您输入的有误！请重新输入：\n");
@@ -345,36 +357,47 @@ void userdeposit(void* arg,client_user *x)
         }
         else
         {
+        	/*存钱前，先去服务端判断用户信息是否正确*/
+        	x->msg = USER_QUIRY;
+			if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+			{
+				printf("send USER_QUIRY msg error\n");
+			}
+
+			if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+			{
+				printf("recv USER_QUIRY msg error");
+			}
+			if(1 == server_userinfo->flag)
+			{
+				printf("请输入您的存款金额：");
+				money=getmoney();
+				x->tmp_money = money;
+				x->msg = USER_DESPOSIT;//存钱
+				printf("%f--%d\n",x->money,x->msg);
+				if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+				{
+					printf("send deposit msg error\n");
+				}
+
+				if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+				{
+					printf("recv deposit msg error");
+				}
+				if(1 == server_userinfo->flag)
+				{
+					system("clear");
+					printf("存款成功!\n");
+					getchar();
+					return;
+				}
+				else
+				{
+					printf("存款失败！\n");
+				}
+
+			}
             //client_display(x);
-            printf("请输入您的存款金额111：");
-            printf("%f\n",x->money);
-            money=getmoney();
-            printf("%f\n",x->money);
-            printf("%s\n",x->name);
-            x->money += money;
-
-            x->msg = USER_DESPOSIT;//存钱
-			printf("%f--%d\n",x->money,x->msg);
-            if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
-            {
-                printf("send deposit msg error\n");
-            }
-
-            if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
-            {
-                printf("recv deposit msg error");
-            }
-            if(1 == server_userinfo->flag)
-            {
-                system("clear");
-                printf("存款成功!\n");
-                getchar();
-                return;
-            }
-            else
-            {
-            	printf("存款失败！\n");
-            }
 
         }
     }
@@ -442,13 +465,12 @@ void userwithdraw(void* arg,client_user *x)
 				{
 					printf("请输入您的取款金额：");
 					money=getmoney();
-					x->money -= money;
+					x->tmp_money = money;
 					x->msg = USER_WITHDRAW;//取钱
 					if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
 					{
 						printf("send userwithdraw msg error\n");
 					}
-
 					if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
 					{
 						printf("recv userwithdraw msg error");
@@ -535,80 +557,200 @@ void change_password(void* arg,client_user *x)
 {
 	int* client_sockfd = arg;
 	int len = 0;
+	int i = 0;
 	char tmp[9];
 	char password[9];
 	/*第一次发消息确认是本人操作*/
-	printf("请输入原密码：\n");
-	scanf("%8s",password);
-	fflush(stdin);
-	snprintf(x->password, sizeof(password),"%s",password);
-	x->msg = USER_QUIRY;
-	if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+	for(i = 0;i<3;i++)
 	{
-		printf("send check userinfo msg error\n");
-	}
-
-	if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
-	{
-		printf("recv check userinfo msg error");
-	}
-	printf("123\n");
-	printf("%d---%s\n",server_userinfo->flag,server_userinfo->name);
-	if(1 == server_userinfo->flag)
-	{
-		while(1)
-		{
-			/*第二次发送消息，修改密码*/
-			printf("请输入新密码：\n");
-			scanf("%8s",password);
-			fflush(stdin);
-			snprintf(tmp, sizeof(tmp),"%s",password);
-			/*本地验证二次新密码*/
-			printf("请再次输入新密码：\n");
-			scanf("%s",password);
-			fflush(stdin);
-			if(0 == strncmp(tmp,password,sizeof(tmp)))
-			{
-				snprintf(x->password, sizeof(x->password),"%s",tmp);
-				printf("%s\n",x->password);
-				x->msg = USER_CHANGE_PASSWORD;
-				break;
-			}
-			else
-			{
-				system("clear");
-				printf("两次密码不一致，请重新输入：\n");
-			}
-		}
-		/*第二次发送消息，修改密码*/
+		printf("请输入原密码：\n");
+		scanf("%8s",password);
+		fflush(stdin);
+		snprintf(x->password, sizeof(password),"%s",password);
+		x->msg = USER_QUIRY;
 		if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
 		{
-			printf("send change password msg error\n");
+			printf("send check userinfo msg error\n");
 		}
 
 		if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
 		{
-			printf("recv change password  msg error");
+			printf("recv check userinfo msg error");
+		}
+		printf("123\n");
+		printf("%d---%s\n",server_userinfo->flag,server_userinfo->name);
+		if(1 == server_userinfo->flag)
+		{
+			while(1)
+			{
+				/*第二次发送消息，修改密码*/
+				printf("请输入新密码：\n");
+				scanf("%8s",password);
+				fflush(stdin);
+				snprintf(tmp, sizeof(tmp),"%s",password);
+				/*本地验证二次新密码*/
+				printf("请再次输入新密码：\n");
+				scanf("%s",password);
+				fflush(stdin);
+				if(0 == strncmp(tmp,password,sizeof(tmp)))
+				{
+					snprintf(x->password, sizeof(x->password),"%s",tmp);
+					printf("%s\n",x->password);
+					x->msg = USER_CHANGE_PASSWORD;
+					break;
+				}
+				else
+				{
+					system("clear");
+					printf("两次密码不一致，请重新输入：\n");
+				}
+			}
+			/*第二次发送消息，修改密码*/
+			if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+			{
+				printf("send change password msg error\n");
+			}
+
+			if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+			{
+				printf("recv change password  msg error");
+			}
+			if(1 == server_userinfo->flag)
+			{
+				system("clear");
+				printf("用户%s密码修改成功 ！！！\n",server_userinfo->name);
+				return;
+			}
+			else
+			{
+				system("clear");
+				printf("用户%s密码修改失败 ！！！\n",server_userinfo->name);
+				return;
+			}
+		}
+		else if(0 == server_userinfo->flag)
+		{
+			system("clear");
+			printf("原密码输入错误！！！\n");
+			//welcome(client_sockfd);
+			continue;
+		}
+	}
+	if(3 == i)
+	{
+		printf("你输入错误已经超过3次！请重新登录！！！\n");
+		welcome(client_sockfd);
+	}
+	return;
+}
+
+void close_acount(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	int i = 0;
+	char tmp[9];
+	char password[9];
+	/*第一次发消息确认是本人操作*/
+	for(i = 0;i<3;i++)
+	{
+		printf("销户前，请输入原密码：\n");
+		scanf("%8s",password);
+		fflush(stdin);
+		snprintf(x->password, sizeof(password),"%s",password);
+		x->msg = USER_QUIRY;
+		if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+		{
+			printf("send check userinfo msg error\n");
+		}
+
+		if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+		{
+			printf("recv check userinfo msg error");
 		}
 		if(1 == server_userinfo->flag)
 		{
-			system("clear");
-			printf("用户%s密码修改成功 ！！！\n",server_userinfo->name);
-			return;
+			if(server_userinfo->money>0)
+			{
+				printf("账户还有余额！是否继续销户！yes/no！");
+				scanf("%8s",tmp);
+				fflush(stdin);
+				if(0 == strncmp(tmp,"yes",sizeof(tmp)))
+				{
+					//x->state = 1;
+					x->msg = USER_CLOSE_ACCOUNT;
+					/*第二次发送消息，修改密码*/
+					if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+					{
+						printf("send USER_CLOSE_ACCOUNT  msg error\n");
+					}
+
+					if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+					{
+						printf("recv USER_CLOSE_ACCOUNT  msg error");
+					}
+					if(1 == server_userinfo->flag)
+					{
+						system("clear");
+						printf("用户%s销户成功 ！！！\n",server_userinfo->name);
+						return;
+					}
+					else
+					{
+						system("clear");
+						printf("用户%s销户失败 ！！！\n",server_userinfo->name);
+						return;
+					}
+				}
+				else
+				{
+					printf("账户还有余额！请先取钱！");
+					return ;
+				}
+			}
+			else
+			{
+				//x->state = 1;
+				x->msg = USER_CLOSE_ACCOUNT;
+				/*第二次发送消息，修改密码*/
+				if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+				{
+					printf("send USER_CLOSE_ACCOUNT msg error\n");
+				}
+
+				if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+				{
+					printf("recv USER_CLOSE_ACCOUNT  msg error");
+				}
+				if(1 == server_userinfo->flag)
+				{
+					system("clear");
+					printf("用户%s销户成功 ！系统转入登录界面！！！\n",server_userinfo->name);
+					welcome(client_sockfd);
+					return;
+				}
+				else
+				{
+					system("clear");
+					printf("用户%s销户失败 ！！！\n",server_userinfo->name);
+					return;
+				}
+			}
+
 		}
-		else
+		else if(0 == server_userinfo->flag)
 		{
 			system("clear");
-			printf("用户%s密码修改失败 ！！！\n",server_userinfo->name);
-			return;
+			printf("原密码输入错误！！！\n");
+			//welcome(client_sockfd);
+			continue;
 		}
 	}
-	else if(0 == server_userinfo->flag)
+	if(3 == i)
 	{
-		system("clear");
-		printf("原密码输入错误，用户信息失效,请重新登录！！！\n");
+		printf("你输入错误已经超过3次！请重新登录！！！\n");
 		welcome(client_sockfd);
-		return;
 	}
 	return;
+
 }

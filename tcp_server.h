@@ -31,7 +31,7 @@
 #define USER_DESPOSIT 1004  //存钱
 #define USER_WITHDRAW 1005  //取钱
 #define USER_QUIRY 1006  //查询
-#define USER_LOGOUT 1007   //销户
+#define USER_CLOSE_ACCOUNT 1007   //销户
 #define USER_CHANGE_PASSWORD 1008 //修改密码
 #define USER_TRANSFER 1009 //用户转账
 /*结构体*/
@@ -81,6 +81,7 @@ int save(user_info* ap);
 int user_quiry();
 int user_transfer();
 int user_change_password();
+int user_close_account();
 
 
 

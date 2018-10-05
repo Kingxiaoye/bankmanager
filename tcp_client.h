@@ -17,6 +17,7 @@
 #define FALSE 1
 #define PASSWORD_ERROR 2
 #define NO_USER_INFO 3
+#define ACCOUNT_STATE_INVALID 5
 /*消息id定义*/
 #define USER_LOGIN 1000   //登录
 #define USER_REGESTER 1002 //注册
@@ -24,7 +25,7 @@
 #define USER_DESPOSIT 1004  //存钱
 #define USER_WITHDRAW 1005  //取钱
 #define USER_QUIRY 1006  //查询
-#define USER_LOGOUT 1007   //销户
+#define USER_CLOSE_ACCOUNT 1007   //销户
 #define USER_CHANGE_PASSWORD 1008 //修改密码
 #define USER_TRANSFER 1009 //用户转账
 
@@ -59,6 +60,6 @@ float getmoney();
 void user_quiry(void* arg,client_user *x);
 void usertransfer(void* arg,client_user *x);
 void change_password(void* arg,client_user *x);
-
+void close_acount(void* arg,client_user *x);
 
 #endif /* TCP_CLIENT_H_ */

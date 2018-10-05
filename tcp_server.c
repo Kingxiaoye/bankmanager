@@ -123,9 +123,6 @@ void* message_handle(void *arg)
     int* sockfd = arg;
 
     int len = 0;
-    int count = 0;
-    int flag = 0;
-
     /*初始化结构体*/
     client_userinfo_init(client_userinfo);
 
@@ -159,6 +156,11 @@ void* message_handle(void *arg)
             {
             	printf("登录失败,用户不存在！！！\n");
             	server_userinfo->flag = NO_USER_INFO;
+            }
+            else if(ACCOUNT_STATE_INVALID == ret)
+            {
+            	printf("登录失败,用户已销户！！！\n");
+            	server_userinfo->flag = ACCOUNT_STATE_INVALID;
             }
             else
             {
@@ -270,6 +272,21 @@ void* message_handle(void *arg)
         	}
         	send(*sockfd,server_userinfo, sizeof(client_user),0);
 		}
+        else if(USER_CLOSE_ACCOUNT == client_userinfo->msg)
+        {
+        	ret = user_close_account();
+			if(SUCCESS == ret)
+			{
+				s1_to_s2(userinfo,server_userinfo);
+				server_userinfo->flag = 1;
+				printf("用户销户成功！！！\n");
+			}
+			else
+			{
+				printf("用户销户失败！！！\n");
+			}
+			send(*sockfd,server_userinfo, sizeof(client_user),0);
+        }
     }
     close(*sockfd);
     return NULL;
@@ -348,17 +365,27 @@ int login()
 				{
 					if(0 == strcmp(userinfo->name,client_userinfo->name))
 					{
-						if(0 == strcmp(userinfo->password,client_userinfo->password))
+						/*先判断用户是否销户，在判断密码是否匹配*/
+						if(0 == userinfo->state)
 						{
-							flag = 1;
-							break;
+							if(0 == strcmp(userinfo->password,client_userinfo->password))
+							{
+								flag = 1;
+								break;
+							}
+							else
+							{
+								//printf("%s-%s\n",userinfo->mima,password);
+								printf("password error!,please reput!\n");
+								return PASSWORD_ERROR ;
+							}
 						}
 						else
 						{
-							//printf("%s-%s\n",userinfo->mima,password);
-							printf("password error!,please reput!\n");
-							return PASSWORD_ERROR ;
+							printf("user had closed account!!!\n");
+							return ACCOUNT_STATE_INVALID;
 						}
+
 					}
 
 				}
@@ -391,8 +418,8 @@ int desposit()
 	printf("desposit ret :%d\n",ret);
 	if(ret == SUCCESS)
 	{
-		money = client_userinfo->money - userinfo->money;
-		userinfo->money = client_userinfo->money;
+		money = client_userinfo->tmp_money;
+		userinfo->money += money;
 		if(0 == save(userinfo))
 		{
 			flag = 1;
@@ -449,8 +476,8 @@ int userwithdraw()
     ret = user_info_match();
     if(SUCCESS == ret)
     {
-    	get_money = userinfo->money - client_userinfo->money;
-    	userinfo->money = client_userinfo->money;
+    	get_money = client_userinfo->tmp_money;
+    	userinfo->money -= get_money;
     	if(0 == save(userinfo))
     	{
     		printf("用户%s取钱%f成功\n",userinfo->name,get_money);
@@ -626,11 +653,9 @@ int user_change_password()
 	/*新密码也可以和原密码相同*/
 	if(ret == PASSWORD_ERROR||ret == SUCCESS)
 	{
-		snprintf(userinfo->password,sizeof(userinfo->password),client_userinfo->password);
+		snprintf(userinfo->password,sizeof(userinfo->password),"%s",client_userinfo->password);
 		if(0 == save(userinfo))
 		{
-			//printf("%s\n",userinfo->password);
-			//printf("密码修改成功！！！\n");
 			return SUCCESS;
 		}
 		else
@@ -639,6 +664,30 @@ int user_change_password()
 			return UPDATE_USERINFO_ERROR;
 		}
 
+	}
+	else
+	{
+		return FALSE;
+	}
+	return 0;
+}
+int user_close_account()
+{
+	int ret = 0;
+	ret = user_info_match();
+	/*新密码也可以和原密码相同*/
+	if(ret == SUCCESS)
+	{
+		userinfo->state = 1;
+		if(0 == save(userinfo))
+		{
+			return SUCCESS;
+		}
+		else
+		{
+
+			return UPDATE_USERINFO_ERROR;
+		}
 	}
 	else
 	{
