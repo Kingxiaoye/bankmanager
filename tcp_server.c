@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     client_userinfo=(client_user*)malloc(sizeof(client_user));
     server_userinfo=(client_user*)malloc(sizeof(client_user));
     userinfo=(user_info*)malloc(sizeof(user_info));
-
+    create_admin();
 
     while(1)
     {
@@ -92,7 +92,44 @@ void client_userinfo_init(client_user* x)
 	strncpy(x->transfer_name,"null",4);
 	x->tmp_money = 0;
 }
+/*创建一个管理员，存在一个则返回*/
+void create_admin()
+{
+	FILE* fp = NULL;
+	int count = 0;
+	int last=1000;
+	userinfo_init(userinfo);
+	fp = fopen("bank_admin","ab+");
+	fseek(fp,0,0);
+	count=fread(userinfo,sizeof(user_info),1,fp);
+	if(count>0)
+	{
+		return;
+	}
+	userinfo->id=last;
+	//strcpy(userinfo->name,client_userinfo->name);
+	//strcpy(userinfo->password,client_userinfo->password);
+	snprintf(userinfo->name,sizeof(userinfo->name),"admin");
+	snprintf(userinfo->password,sizeof(userinfo->password),"admin");
+	userinfo->state=0;
+	userinfo->money = 0;
+	fseek(fp,0,2);
+	fwrite(userinfo,sizeof(user_info),1,fp);
+	fclose(fp);
 
+	fp = fopen("bank_admin","ab+");
+	while(!feof(fp))
+	{
+		count=fread(userinfo,sizeof(user_info),1,fp);
+		if(count>0)
+		{
+			printf("%s-%s\n",userinfo->name,userinfo->password);
+		}
+	}
+	fclose(fp);
+	return ;
+
+}
 void userinfo_init(user_info* x)
 {
     strncpy(x->name,"null",4);
@@ -138,6 +175,7 @@ void* message_handle(void *arg)
 
     while((len=recv(*sockfd,client_userinfo, sizeof(client_user),0))>0)
     {
+
     	int ret = 0;
     	/*每次收到新消息，要把服务端结构体和用户信息结构体初始化*/
         client_userinfo_init(server_userinfo);
@@ -146,6 +184,7 @@ void* message_handle(void *arg)
     	/*消息类型1：登陆请求*/
         if(USER_LOGIN==client_userinfo->msg)
         {
+        	printf("服务端收到USER_LOGIN消息！！！\n");
         	ret = login();
             if(PASSWORD_ERROR == ret)
             {
@@ -171,6 +210,7 @@ void* message_handle(void *arg)
         }
         else if(USER_DESPOSIT==client_userinfo->msg)
         {
+        	printf("服务端收到USER_DESPOSIT消息！！！\n");
         	ret = desposit();
         	if(PASSWORD_ERROR == ret)
         	{
@@ -191,6 +231,7 @@ void* message_handle(void *arg)
         }
         else if(USER_REGESTER == client_userinfo->msg)
         {
+        	printf("服务端收到USER_REGESTER消息！！！\n");
         	ret = regester();
         	if(NAME_OCCUPY == ret)
         	{
@@ -207,6 +248,7 @@ void* message_handle(void *arg)
         }
         else if(USER_WITHDRAW == client_userinfo->msg)
         {
+        	printf("服务端收到USER_WITHDRAW消息！！！\n");
         	ret = userwithdraw();
         	if(SUCCESS == ret)
         	{
@@ -222,6 +264,7 @@ void* message_handle(void *arg)
         }
         else if(USER_QUIRY == client_userinfo->msg)
         {
+        	printf("服务端收到USER_QUIRY消息！！！\n");
         	ret = user_quiry();
         	if(SUCCESS == ret)
 			{
@@ -229,6 +272,11 @@ void* message_handle(void *arg)
 				server_userinfo->flag = 1;
 				printf("查询成功，查询信息已发送！！！\n");
 			}
+        	else if(NO_USER_INFO == ret)
+        	{
+        		//s1_to_s2(userinfo,server_userinfo);
+				server_userinfo->flag = NO_USER_INFO;
+        	}
         	else
         	{
         		s1_to_s2(userinfo,server_userinfo);
@@ -240,6 +288,7 @@ void* message_handle(void *arg)
         }
         else if(USER_TRANSFER == client_userinfo->msg)
         {
+        	printf("服务端收到USER_TRANSFER消息！！！\n");
         	ret = user_transfer();
         	if(SUCCESS == ret)
 			{
@@ -259,6 +308,7 @@ void* message_handle(void *arg)
         }
         else if(USER_CHANGE_PASSWORD == client_userinfo->msg)
 		{
+        	printf("服务端收到USER_CHANGE_PASSWORD消息！！！\n");
         	ret = user_change_password();
         	if(SUCCESS == ret)
 			{
@@ -274,6 +324,7 @@ void* message_handle(void *arg)
 		}
         else if(USER_CLOSE_ACCOUNT == client_userinfo->msg)
         {
+        	printf("服务端收到USER_CLOSE_ACCOUNT消息！！！\n");
         	ret = user_close_account();
 			if(SUCCESS == ret)
 			{
@@ -284,6 +335,22 @@ void* message_handle(void *arg)
 			else
 			{
 				printf("用户销户失败！！！\n");
+			}
+			send(*sockfd,server_userinfo, sizeof(client_user),0);
+        }
+        else if(USERINFO_BY_ID == client_userinfo->msg)
+        {
+        	printf("收到USERINFO_BY_ID信息！！！\n");
+        	ret = get_userinfo_by_id();
+        	if(SUCCESS == ret)
+			{
+				s1_to_s2(userinfo,server_userinfo);
+				server_userinfo->flag = 1;
+				printf("通过id获取用户信息成功！！！\n");
+			}
+			else
+			{
+				printf("通过id获取用户信息失败！！！\n");
 			}
 			send(*sockfd,server_userinfo, sizeof(client_user),0);
         }
@@ -338,19 +405,34 @@ int login()
 	FILE* fp;
 	if (0==strcmp(client_userinfo->name,"admin"))//管理员登录
 	{
-		if (0==strcmp(client_userinfo->password,"admin"))
+		fp=fopen("bank_admin","ab+");
+		if(fp!=NULL)
 		{
-			printf("hello client you are admin \n");
-			server_userinfo = client_userinfo;
-			server_userinfo->flag = 1;
-			return SUCCESS;
+			while(!feof(fp))
+			{
+				count=fread(userinfo,sizeof(user_info),1,fp);
+				if(count>0)
+				{
+					if (0==strcmp(userinfo->password,client_userinfo->password))
+					{
+						printf("hello client you are admin \n");
+						s1_to_s2(userinfo,server_userinfo);
+						server_userinfo->flag = 1;
+						fclose(fp);
+						return SUCCESS;
+					}
+					else
+					{
+						printf("password error!!!\n");
+						s1_to_s2(userinfo,server_userinfo);
+						fclose(fp);
+						return PASSWORD_ERROR;
+					}
+				}
+			}
+
 		}
-		else
-		{
-			printf("password error!!!\n");
-			server_userinfo = client_userinfo;
-			return PASSWORD_ERROR;
-		}
+
 	}
 	//用户登录
 	else
@@ -520,6 +602,80 @@ int user_info_match()
 						}
 					}
 				}
+				if(1 == flag)
+				{
+					if(0 == strncmp(userinfo->password,client_userinfo->password,sizeof(userinfo->password)))
+					{
+						fclose(fp);
+						return SUCCESS;
+					}
+					else
+					{
+						printf("password error!,please reput!\n");
+						fclose(fp);
+						return PASSWORD_ERROR ;
+					}
+				}
+				else
+				{
+					//printf("用户名不存在，请尝试注册！！！\n");
+					fclose(fp);
+					return NO_USER_INFO ;
+				}
+			}
+			else
+			{
+				return OPEN_FILE_ERROR;
+			}
+		}
+		else
+		{
+			printf("您的账号已经销户!!!\n");
+			return ACCOUNT_STATE_INVALID;
+		}
+	}
+	else
+	{
+		if(USER_REGESTER != client_userinfo->msg)
+		{
+			printf("您的账号ID错误!!!\n");
+			return ACCOUNT_ID_ERROR;
+		}
+		else
+		{
+			printf("新账号注册中!!!\n");
+			return USER_REGESTER;
+		}
+	}
+
+	return SUCCESS;
+}
+
+int user_info_match_by_id()
+{
+	int count = 0;
+	int flag = 0;
+	FILE *fp;
+	printf("%d\n",client_userinfo->id);
+	if(client_userinfo->id!=0)
+	{
+		if(client_userinfo->state!=1)
+		{
+			fp=fopen("bank","rb+");
+			if(fp!=NULL)
+			{
+				while(!feof(fp))
+				{
+					count=fread(userinfo,sizeof(user_info),1,fp);
+					if(count>0)
+					{
+						if(userinfo->id == client_userinfo->id)
+						{
+							flag = 1;
+							break;
+						}
+					}
+				}
 				printf("%s-%s\n",userinfo->name,userinfo->password);
 				if(1 == flag)
 				{
@@ -537,7 +693,7 @@ int user_info_match()
 				}
 				else
 				{
-					printf("用户名不存在，请尝试注册！！！\n");
+					printf("账户不存在，请尝试注册！！！\n");
 					fclose(fp);
 					return NO_USER_INFO ;
 				}
@@ -579,7 +735,7 @@ int user_quiry()
 	}
 	else
 	{
-		return FALSE;
+		return ret;
 	}
 	//return 0;
 }
@@ -694,4 +850,15 @@ int user_close_account()
 		return FALSE;
 	}
 	return 0;
+}
+
+int get_userinfo_by_id()
+{
+	int ret = 0;
+	ret = user_info_match_by_id();
+	if(ret == SUCCESS)
+	{
+		return SUCCESS;
+	}
+	return ret;
 }

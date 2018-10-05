@@ -28,6 +28,9 @@
 #define USER_CLOSE_ACCOUNT 1007   //销户
 #define USER_CHANGE_PASSWORD 1008 //修改密码
 #define USER_TRANSFER 1009 //用户转账
+#define USERINFO_BY_ID 1010//获取用户信息通过账户id
+
+
 
 typedef struct client_user
 {
@@ -61,5 +64,10 @@ void user_quiry(void* arg,client_user *x);
 void usertransfer(void* arg,client_user *x);
 void change_password(void* arg,client_user *x);
 void close_acount(void* arg,client_user *x);
+void mainmenu(void* arg);
+void admin_deposit(void* arg,client_user *x);
+void admin_withdraw(void* arg,client_user *x);
+void admin_query(void* arg,client_user *x);
+void admin_adduser(void* arg,client_user *x);
 
 #endif /* TCP_CLIENT_H_ */

@@ -71,12 +71,193 @@ void client_userinfo_init(client_user* x)
     x->tmp_money = 0;
 }
 
-/*登录函数，返回值为错误次数*/
+/*管理员系统菜单*/
+void mainmenu(void* arg)
+{
+	int* client_sockfd = arg;
+    int xuanze;
+    do
+    {
+        xuanze=-1;
+        printf("+-------------------------------+\n");
+        printf("| 存款  请按 1     开户  请按 4 |\n");
+        printf("| 取款  请按 2     销户  请按 5 |\n");
+        printf("| 查询  请按 3     退出  请按 0 |\n");
+        printf("| 查询全部         请按 6      |\n");
+        printf("+-------------------------------+\n");
+        printf("请选择：\n");
+        scanf("%d",&xuanze);
+        fflush(stdin);
+        switch(xuanze)
+        {
+            case 1: system("clear");
+            	admin_deposit(client_sockfd,server_userinfo);
+				break;
+            case 2: system("clear");
+				admin_withdraw(client_sockfd,server_userinfo);
+				break;
+            case 3: system("clear");
+				admin_query(client_sockfd,server_userinfo);
+				break;
+            case 4: system("clear");
+				admin_adduser(client_sockfd,server_userinfo);
+				break;
+            case 5: system("clear");
+                    //closeAnAcount();
+                    break;
+            case 6: system("clear");
+                    //queryall();
+                    break;
+            case 0: system("clear");
+
+                    break;
+            default:system("clear");
+                    printf("您输入的有误！\n");
+                    getchar();
+                    break;
+        }
+    }while(1);
+}
+
+void admin_deposit(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	int id = 0;
+	char password[9];
+	printf("请输入存款账户id:\n");
+	scanf("%d",&id);
+	printf("请输入存款账户密码:\n");
+	scanf("%8s",password);
+	x->id = id;
+	snprintf(x->password,sizeof(x->password),"%s",password);
+	/*通过账户id向服务器发送消息，获取用户信息*/
+	x->msg = USERINFO_BY_ID;
+	if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
+	{
+		printf("send error\n");
+	}
+	if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+	{
+		printf("recv error");
+	}
+	if(1 == server_userinfo->flag)
+	{
+		userdeposit(client_sockfd,server_userinfo);
+	}
+	else
+	{
+		printf("账户id有误！！！\n");
+	}
+	return;
+}
+
+void admin_withdraw(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	int id = 0;
+	char password[9];
+	printf("请输入取款账户id:\n");
+	scanf("%d",&id);
+	printf("请输入取款账户密码:\n");
+	scanf("%8s",password);
+	x->id = id;
+	snprintf(x->password,sizeof(x->password),"%s",password);
+	/*通过账户id向服务器发送消息，获取用户信息*/
+	x->msg = USERINFO_BY_ID;
+	if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
+	{
+		printf("send error\n");
+	}
+	if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+	{
+		printf("recv error");
+	}
+	if(1 == server_userinfo->flag)
+	{
+		userwithdraw(client_sockfd,server_userinfo);
+	}
+	else
+	{
+		printf("账户id有误！！！\n");
+	}
+	return;
+}
+void admin_query(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	int id = 0;
+	char password[9];
+	printf("请输入查询账户id:\n");
+	scanf("%d",&id);
+	printf("输入查询账户密码:\n");
+	scanf("%8s",password);
+	x->id = id;
+	snprintf(x->password,sizeof(x->password),"%s",password);
+	/*通过账户id向服务器发送消息，获取用户信息*/
+	x->msg = USERINFO_BY_ID;
+	if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
+	{
+		printf("send error\n");
+	}
+	if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+	{
+		printf("recv error");
+	}
+	if(1 == server_userinfo->flag)
+	{
+		user_quiry(client_sockfd,server_userinfo);
+	}
+	else
+	{
+		printf("账户id有误！！！\n");
+	}
+	return;
+}
+void admin_adduser(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	char name[9];
+	char password[9];
+	//float money = -1;
+	printf("请输入账户名称:\n");
+	scanf("%8s",name);
+	printf("请输入账户密码:\n");
+	scanf("%8s",password);
+	//printf("请输入金额:\n");
+	//money = getmoney();
+	snprintf(x->name,sizeof(x->name),"%s",name);
+	snprintf(x->password,sizeof(x->password),"%s",password);
+	//x->money = money;
+	x->msg = USER_REGESTER;
+	if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
+	{
+		printf("send error\n");
+	}
+	if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+	{
+		printf("recv error");
+	}
+	if(1 == server_userinfo->flag)
+	{
+		printf("恭喜用户%s注册成功！！！\n",server_userinfo->name);
+	}
+	else
+	{
+		printf("注册失败，用户名已存在！！！\n");
+	}
+
+	return;
+}
+/*登录函数*/
 int login(void* arg)
 {
     char name[9];
     char password[9];
-    int len;
+    int len = 0;
     int ret = 0;
     int* client_sockfd = arg;
     printf("请输入您的用户名：");
@@ -97,14 +278,14 @@ int login(void* arg)
     }
     if(1 == server_userinfo->flag)
     {
-    	printf("%d\n",server_userinfo->flag);
+    	//printf("%d\n",server_userinfo->flag);
     	if (0==strcmp(server_userinfo->name,"admin"))
 		{
 			if (0==strcmp(server_userinfo->password,"admin"))
 			{
 				//超级管理员界面
-				printf("欢迎进入超级管理员界面\n");
-				//mainmenu();
+				printf("欢迎进入超级管理员界面！！！\n");
+				mainmenu(client_sockfd);
 
 				return SUCCESS;
 			}
@@ -217,7 +398,7 @@ void welcome(void* arg)
         printf("|   欢迎使用XX银行业务管理平台     |\n");
         printf("|      1:登录                    |\n");
         printf("|      2:注册                    |\n");
-        printf("|      3:退出                    |\n");
+        printf("|      0:退出                    |\n");
         printf("|                               |\n");
         printf("+-------------------------------+\n");
         printf("请选择：");
@@ -231,6 +412,10 @@ void welcome(void* arg)
                 break;
             case 2: system("clear");
             	b = regester(client_sockfd);
+            	break;
+            case 0: system("clear");
+            	close(*client_sockfd);//关闭套接字 
+				exit(0);
             	break;
             default: system("clear");
                 printf("您输入的有误！\n");

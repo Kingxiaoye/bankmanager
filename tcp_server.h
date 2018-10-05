@@ -34,6 +34,9 @@
 #define USER_CLOSE_ACCOUNT 1007   //销户
 #define USER_CHANGE_PASSWORD 1008 //修改密码
 #define USER_TRANSFER 1009 //用户转账
+#define USERINFO_BY_ID 1010  //获取用户信息通过账户id
+
+
 /*结构体*/
 typedef struct user_info
 {
@@ -77,12 +80,14 @@ void userinfo_init(user_info* x);
 void s1_to_s2(user_info* x1,client_user* x2);
 void s2_to_s1(client_user* x2,user_info* x1);
 int user_info_match();
+int user_info_match_by_id();
 int save(user_info* ap);
 int user_quiry();
 int user_transfer();
 int user_change_password();
 int user_close_account();
-
+int get_userinfo_by_id();
+void create_admin();
 
 
 
