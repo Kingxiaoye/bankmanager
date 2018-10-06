@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
         perror("connect");
         return 1;
     }
-    printf("connected to server\n");
+    //printf("connected to server\n");
 
     client_userinfo=(client_user*)malloc(sizeof(client_user));
     server_userinfo=(client_user*)malloc(sizeof(client_user));
@@ -73,6 +73,7 @@ void client_userinfo_init(client_user* x)
     x->transfer_id = 0;
     strncpy(x->transfer_name,"null",sizeof(x->transfer_name)-1);
     x->tmp_money = 0;
+    x->admin_operate = 0;
 }
 
 /*管理员系统菜单*/
@@ -154,6 +155,7 @@ void admin_deposit(void* arg,client_user *x)
 	}
 	if(1 == server_userinfo->flag)
 	{
+		server_userinfo->admin_operate = 1;
 		userdeposit(client_sockfd,server_userinfo);
 	}
 	else
@@ -187,6 +189,7 @@ void admin_withdraw(void* arg,client_user *x)
 	}
 	if(1 == server_userinfo->flag)
 	{
+		server_userinfo->admin_operate = 1;
 		userwithdraw(client_sockfd,server_userinfo);
 	}
 	else
@@ -219,6 +222,7 @@ void admin_query(void* arg,client_user *x)
 	}
 	if(1 == server_userinfo->flag)
 	{
+		server_userinfo->admin_operate = 1;
 		user_quiry(client_sockfd,server_userinfo);
 	}
 	else
@@ -244,6 +248,7 @@ void admin_adduser(void* arg,client_user *x)
 	snprintf(x->password,sizeof(x->password),"%s",password);
 	//x->money = money;
 	x->msg = USER_REGESTER;
+	x->admin_operate = 1;
 	if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
 	{
 		printf("send error\n");
@@ -287,6 +292,7 @@ void admin_close_account(void* arg,client_user *x)
 	}
 	if(1 == server_userinfo->flag)
 	{
+		server_userinfo->admin_operate = 1;
 		close_acount(client_sockfd,server_userinfo);
 	}
 	else
@@ -319,6 +325,7 @@ void admin_change_password(void* arg,client_user *x)
 	}
 	if(1 == server_userinfo->flag)
 	{
+		server_userinfo->admin_operate = 1;
 		change_password(client_sockfd,server_userinfo);
 	}
 	else
@@ -344,6 +351,7 @@ void admin_fuzzy_query(void* arg,client_user *x)
 	snprintf(x->password,sizeof(x->password),"%s",password);
 	/*再次验证管理员身份*/
 	x->msg = USER_LOGIN;
+	x->admin_operate = 1;
 	if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
 	{
 		printf("send error\n");
@@ -359,6 +367,7 @@ void admin_fuzzy_query(void* arg,client_user *x)
 		/*用结构体的transfer_name保存用来模糊查询的字符串*/
 		snprintf(x->transfer_name,sizeof(x->transfer_name),"%s",str);
 		x->msg = FUZZY_QUIRY;
+		x->admin_operate = 1;
 		if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
 		{
 			printf("send error\n");

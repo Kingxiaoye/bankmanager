@@ -63,6 +63,7 @@ typedef struct client_user
     int transfer_id;//转账账户id
     char transfer_name[9];//转账账户名字
     float tmp_money;//存取钱金额，转账金额
+    int admin_operate;//管理员操作标志位 0用户操作，1管理员操作
 }client_user,server_user;
 
 /*全局变量-用户信息*/
@@ -76,6 +77,7 @@ int userwithdraw(user_info* userinfo,client_user* client_userinfo,client_user* s
 void welcome(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);/*欢迎界面*/
 void* message_handle(void *arg);
 void free_struct(client_user *x);
+char* get_time();
 void client_userinfo_init(client_user* x);
 void userinfo_init(user_info* x);
 void s1_to_s2(user_info* x1,client_user* x2);

@@ -14,9 +14,11 @@
 #include <unistd.h> // close function
 #include "tcp_server.h"
 //#include "user.h"
-//#include "message_log.h"
+#include "message_log.h"
+#include <time.h>
 
-
+/*时间全局变量*/
+char mytime[20] = "";
 int main(int argc, char *argv[])
 {
     int server_sockfd;//服务器端套接字    
@@ -45,9 +47,6 @@ int main(int argc, char *argv[])
     /*监听连接请求--监听队列长度为5*/
     listen(server_sockfd,5);
     sin_size=sizeof(struct sockaddr_in);
-
-
-
 
     while(1)
     {
@@ -85,6 +84,7 @@ void client_userinfo_init(client_user* x)
     x->transfer_id = 0;
 	strncpy(x->transfer_name,"null",4);
 	x->tmp_money = 0;
+	x->admin_operate = 0;
 }
 /*创建一个管理员，存在一个则返回*/
 void create_admin(user_info* userinfo)
@@ -123,6 +123,16 @@ void create_admin(user_info* userinfo)
 	fclose(fp);
 	return ;
 
+}
+
+/*获取时间函数*/
+char* get_time()
+{
+    struct timeval tv;
+    char* p = mytime;
+    gettimeofday(&tv,NULL);	strftime(mytime,sizeof(mytime),"%Y/%m/%d/%H/%M",localtime(&tv.tv_sec));
+    //printf("Time:%s\n",mytime);
+    return p;
 }
 void userinfo_init(user_info* x)
 {
@@ -163,7 +173,8 @@ void* message_handle(void *arg)
 
 	create_admin(userinfo);
     int* sockfd = arg;
-
+    char command[COMMAND_LEN] = {0};
+    char admin_name[9] = "admin";
     int len = 0;
     /*初始化结构体*/
     client_userinfo_init(client_userinfo);
@@ -211,10 +222,18 @@ void* message_handle(void *arg)
             	if(server_userinfo->flag == ADMIN_FLAG)
             	{
             		server_userinfo->flag = ADMIN_FLAG;
+            		if(1 != client_userinfo->admin_operate)
+            		{
+						snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s登录系统",\
+						get_time(),server_userinfo->name);
+						write_running_log(command,server_userinfo->name);
+            		}
             	}
             	else
             	{
-					printf("用户%s登录成功！！！\n",server_userinfo->name);
+            		snprintf(command,sizeof(command),"时间:%s 用户%s登录系统",\
+					get_time(),server_userinfo->name);
+					write_running_log(command,server_userinfo->name);
 					server_userinfo->flag = 1;
             	}
             }
@@ -236,6 +255,22 @@ void* message_handle(void *arg)
         	}
         	else
 			{
+        		if(1 == client_userinfo->admin_operate)
+        		{
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]用户%s存钱%f成功",\
+    				get_time(),client_userinfo->name,client_userinfo->tmp_money);
+    				write_running_log(command,client_userinfo->name);
+
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s帮用户%s存钱%f成功",\
+    				get_time(),admin_name,client_userinfo->name,client_userinfo->tmp_money);
+    				write_running_log(command,admin_name);
+        		}
+        		else
+        		{
+					snprintf(command,sizeof(command),"时间:%s 用户%s存钱%f成功",\
+					get_time(),client_userinfo->name,client_userinfo->tmp_money);
+					write_running_log(command,client_userinfo->name);
+        		}
 				s1_to_s2(userinfo,server_userinfo);
 				server_userinfo->flag = 1;
 			}
@@ -252,8 +287,24 @@ void* message_handle(void *arg)
         	}
         	else
         	{
+        		if(1 == client_userinfo->admin_operate)
+				{
+					snprintf(command,sizeof(command),"时间:%s [管理员操作]用户%s注册成功",\
+					get_time(),client_userinfo->name);
+					write_running_log(command,client_userinfo->name);
+
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s帮用户%s注册成功",\
+    				get_time(),admin_name,client_userinfo->name);
+    				write_running_log(command,admin_name);
+				}
+				else
+				{
+					snprintf(command,sizeof(command),"时间:%s 用户%s注册成功",\
+					get_time(),client_userinfo->name);
+					write_running_log(command,client_userinfo->name);
+				}
         		s1_to_s2(userinfo,server_userinfo);
-        		printf("用户%s注册成功！！！\n",server_userinfo->name);
+        		//printf("用户%s注册成功！！！\n",server_userinfo->name);
         		server_userinfo->flag = 1;
         	}
         	send(*sockfd,server_userinfo, sizeof(client_user),0);
@@ -264,6 +315,22 @@ void* message_handle(void *arg)
         	ret = userwithdraw(userinfo,client_userinfo,server_userinfo);
         	if(SUCCESS == ret)
         	{
+        		if(1 == client_userinfo->admin_operate)
+        		{
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]用户%s取钱%f成功",\
+    				get_time(),client_userinfo->name,client_userinfo->tmp_money);
+    				write_running_log(command,client_userinfo->name);
+
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s帮用户%s取钱%f成功",\
+    				get_time(),admin_name,client_userinfo->name,client_userinfo->tmp_money);
+    				write_running_log(command,admin_name);
+        		}
+        		else
+        		{
+					snprintf(command,sizeof(command),"时间:%s 用户%s取钱%f成功",\
+					get_time(),client_userinfo->name,client_userinfo->tmp_money);
+					write_running_log(command,client_userinfo->name);
+        		}
         		s1_to_s2(userinfo,server_userinfo);
         		server_userinfo->flag = 1;
         	}
@@ -280,6 +347,24 @@ void* message_handle(void *arg)
         	ret = user_quiry(userinfo,client_userinfo,server_userinfo);
         	if(SUCCESS == ret)
 			{
+        		/*
+        		if(1 == client_userinfo->admin_operate)
+        		{
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]用户%s查询信息成功",\
+    				get_time(),client_userinfo->name);
+    				write_running_log(command,client_userinfo->name);
+
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s帮用户%s查询信息成功",\
+    				get_time(),admin_name,client_userinfo->name);
+    				write_running_log(command,admin_name);
+        		}
+        		else
+        		{
+					snprintf(command,sizeof(command),"时间:%s 用户%s查询信息成功",\
+					get_time(),client_userinfo->name);
+					write_running_log(command,client_userinfo->name);
+        		}
+        		*/
 				s1_to_s2(userinfo,server_userinfo);
 				server_userinfo->flag = 1;
 				printf("查询成功，查询信息已发送！！！\n");
@@ -296,6 +381,11 @@ void* message_handle(void *arg)
         		server_userinfo->flag = 0;
         		printf("查询失败%d--  %s\n",server_userinfo->flag,server_userinfo->password);
         	}
+        	/*管理员操作时，会先发查询消息判断用户本人，这时应保证管理员操作位为1*/
+			if(1 == client_userinfo->admin_operate)
+			{
+				server_userinfo->admin_operate = 1;
+			}
 			send(*sockfd,server_userinfo, sizeof(client_user),0);
         }
         else if(USER_TRANSFER == client_userinfo->msg)
@@ -304,6 +394,7 @@ void* message_handle(void *arg)
         	ret = user_transfer(userinfo,client_userinfo,server_userinfo);
         	if(SUCCESS == ret)
 			{
+
 				s1_to_s2(userinfo,server_userinfo);
 				server_userinfo->flag = 1;
 				printf("转账成功！！！\n");
@@ -324,6 +415,22 @@ void* message_handle(void *arg)
         	ret = user_change_password(userinfo,client_userinfo,server_userinfo);
         	if(SUCCESS == ret)
 			{
+        		if(1 == client_userinfo->admin_operate)
+        		{
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]用户%s修改密码成功",\
+    				get_time(),client_userinfo->name);
+    				write_running_log(command,client_userinfo->name);
+
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s帮用户%s修改密码成功",\
+    				get_time(),admin_name,client_userinfo->name);
+    				write_running_log(command,admin_name);
+        		}
+        		else
+        		{
+					snprintf(command,sizeof(command),"时间:%s 用户%s修改密码成功",\
+					get_time(),client_userinfo->name);
+					write_running_log(command,client_userinfo->name);
+        		}
 				s1_to_s2(userinfo,server_userinfo);
 				server_userinfo->flag = 1;
 				printf("密码修改成功！！！\n");
@@ -340,6 +447,22 @@ void* message_handle(void *arg)
         	ret = user_close_account(userinfo,client_userinfo,server_userinfo);
 			if(SUCCESS == ret)
 			{
+        		if(1 == client_userinfo->admin_operate)
+        		{
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]用户%s销户成功",\
+    				get_time(),client_userinfo->name);
+    				write_running_log(command,client_userinfo->name);
+
+            		snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s帮用户%s销户成功",\
+    				get_time(),admin_name,client_userinfo->name);
+    				write_running_log(command,admin_name);
+        		}
+        		else
+        		{
+					snprintf(command,sizeof(command),"时间:%s 用户%s销户成功",\
+					get_time(),client_userinfo->name);
+					write_running_log(command,client_userinfo->name);
+        		}
 				s1_to_s2(userinfo,server_userinfo);
 				server_userinfo->flag = 1;
 				printf("用户销户成功！！！\n");
@@ -357,8 +480,18 @@ void* message_handle(void *arg)
         	if(SUCCESS == ret)
 			{
 				s1_to_s2(userinfo,server_userinfo);
+
+				snprintf(command,sizeof(command),"时间:%s [管理员操作]用户%s通过账户id:%d向管理员%s获取了信息",\
+				get_time(),server_userinfo->name,client_userinfo->id,admin_name);
+				write_running_log(command,server_userinfo->name);
+
+				snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s通过账户id:%d获取用户%s信息成功",\
+				get_time(),admin_name,client_userinfo->id,server_userinfo->name);
+				write_running_log(command,admin_name);
+
+
 				server_userinfo->flag = 1;
-				printf("通过id获取用户信息成功！！！\n");
+				//printf("通过id获取用户信息成功！！！\n");
 			}
 			else
 			{
@@ -370,10 +503,37 @@ void* message_handle(void *arg)
         {
         	printf("收到FUZZY_QUIRY信息！！！\n");
         	fuzzy_quiry(sockfd,userinfo,client_userinfo,server_userinfo);
+
+			snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s对字符串%s使用了模糊查询功能",\
+			get_time(),client_userinfo->name,client_userinfo->transfer_name);
+			write_running_log(command,admin_name);
         }
     }
+    if(0 == strncmp(client_userinfo->name,"admin",sizeof(client_userinfo->name)))
+    {
+    	snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s退出系统",\
+		get_time(),client_userinfo->name);
+		write_running_log(command,client_userinfo->name);
+    }
+    else
+    {
+    	if(1 == client_userinfo->admin_operate)
+    	{
+    		/*管理员操作时，会导致结构体变量为用户信息，但管理员标志位为1,
+    		 * 这里写名字时，应写管理员的*/
 
-    //printf("kkkkkkkkkkkkk\n");
+        	snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s退出系统",\
+    		get_time(),admin_name);
+    		write_running_log(command,admin_name);
+    	}
+    	else
+    	{
+			snprintf(command,sizeof(command),"时间:%s 用户%s退出系统",\
+			get_time(),server_userinfo->name);
+			write_running_log(command,client_userinfo->name);
+    	}
+    }
+
     free_struct(client_userinfo);
     free_struct(server_userinfo);
     free(userinfo);
@@ -394,7 +554,7 @@ int save(user_info* ap)
     user_info* nap=(user_info*)malloc(sizeof(user_info));
     int flag=-1,count=0;
     FILE *fp;
-    printf("save in\n");
+    //printf("save in\n");
     fp=fopen("bank","rb+");
     if(fp!=NULL)
     {
@@ -407,7 +567,7 @@ int save(user_info* ap)
                 {
                     fseek(fp,-((long)sizeof(user_info)),1);
                     fwrite(ap,sizeof(user_info),1,fp);
-                    printf("save success\n");
+                    //printf("save success\n");
                     flag=0;
                     break;
                 }
@@ -438,7 +598,7 @@ int login(user_info* userinfo,client_user* client_userinfo,client_user* server_u
 				{
 					if (0==strcmp(userinfo->password,client_userinfo->password))
 					{
-						printf("hello client you are admin \n");
+						//printf("hello client you are admin \n");
 						s1_to_s2(userinfo,server_userinfo);
 						server_userinfo->flag = ADMIN_FLAG;
 						fclose(fp);
@@ -497,7 +657,7 @@ int login(user_info* userinfo,client_user* client_userinfo,client_user* server_u
 			}
 			if(1 == flag)
 			{
-				printf("hello client you are user \n");
+				//printf("hello client you are user \n");
 				s1_to_s2(userinfo,server_userinfo);
 				fclose(fp);
 				return SUCCESS;
@@ -679,7 +839,7 @@ int user_info_match_by_id(user_info* userinfo,client_user* client_userinfo,clien
 	int count = 0;
 	int flag = 0;
 	FILE *fp;
-	printf("%d\n",client_userinfo->id);
+	//printf("%d\n",client_userinfo->id);
 	if(client_userinfo->id!=0)
 	{
 		if(client_userinfo->state!=1)
@@ -699,7 +859,7 @@ int user_info_match_by_id(user_info* userinfo,client_user* client_userinfo,clien
 						}
 					}
 				}
-				printf("%s-%s\n",userinfo->name,userinfo->password);
+				//printf("%s-%s\n",userinfo->name,userinfo->password);
 				if(1 == flag)
 				{
 					if(0 == strncmp(userinfo->password,client_userinfo->password,sizeof(userinfo->password)))

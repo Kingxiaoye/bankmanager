@@ -10,22 +10,22 @@
 
 
 
-void write_running_log(const char *cmd)
+void write_running_log(const char *cmd,const char* name)
 {
 	char command[COMMAND_LEN] = {0};
 	int check_line = 0;
 	FILE *pp = NULL;
 	char buf[BUF_LEN] = {0};
 	snprintf(command,sizeof(command),
-		"/usr/bin/echo  \"%s\"  >>%s",
-		cmd,LOG_PATH);		
+		"echo  \"%s\"  >>%s/%s",
+		cmd,LOG_PATH,name);
 	if(system(command)>>8)
 	{
 		printf("write log error(cmd:%s)\n",command);
 		return ;
 	}	
 	printf("%s\n",cmd);
-	snprintf(command, sizeof(command), "/usr/bin/cat %s |wc -l",LOG_PATH);
+	snprintf(command, sizeof(command), "cat %s/%s |wc -l",LOG_PATH,name);
 	//获取行数
 	pp = popen(command, "r");
 	if(NULL == pp)
@@ -47,7 +47,7 @@ void write_running_log(const char *cmd)
 		return ;
 	}
 	snprintf(command,sizeof(command),
-		"/usr/bin/tail -n %d %s > %s ",SAVE_LINE,LOG_PATH,LOG_PATH_BACK);
+		"tail -n %d %s/%s > %s/%s ",SAVE_LINE,LOG_PATH,name,LOG_PATH_BACK,name);
 	if(system(command)>>8)
 	{
 		printf("set log line error(cmd:%s)\n",command);
@@ -55,7 +55,7 @@ void write_running_log(const char *cmd)
 	}
 	//保存最新的日志
 	snprintf(command,sizeof(command),
-		"/usr/bin/mv %s  %s",LOG_PATH_BACK,LOG_PATH);
+		"mv %s/%s  %s/%s",LOG_PATH_BACK,name,LOG_PATH,name);
 	
 	if(system(command)>>8)
 	{

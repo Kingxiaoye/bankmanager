@@ -50,6 +50,7 @@ typedef struct client_user
     int transfer_id;//转账账户id
     char transfer_name[9];//转账账户名字
     float tmp_money;//存取钱金额，转账金额
+    int admin_operate;//管理员操作标志位 0用户操作，1管理员操作
 }client_user;
 
 /*全局变量-用户信息*/
