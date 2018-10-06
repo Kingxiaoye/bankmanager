@@ -23,6 +23,8 @@
 #define OPEN_FILE_ERROR 7
 #define UPDATE_USERINFO_ERROR 8
 
+#define ADMIN_FLAG 110
+
 #define initnumber 100000001 //初始账户号，后续账户加1操作
 /*消息id定义*/
 #define USER_LOGIN 1000   //登录

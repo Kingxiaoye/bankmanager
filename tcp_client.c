@@ -55,7 +55,11 @@ int main(int argc, char *argv[])
     close(*client_sockfd);//关闭套接字 
     return 0;
 }
-
+void free_struct(client_user *x)
+{
+    free(x);
+    x = NULL;
+}
 
 void client_userinfo_init(client_user* x)
 {
@@ -83,7 +87,7 @@ void mainmenu(void* arg)
         printf("| 存款  请按 1     开户  请按 4 |\n");
         printf("| 取款  请按 2     销户  请按 5 |\n");
         printf("| 查询  请按 3     退出  请按 0 |\n");
-        printf("| 查询全部         请按 6      |\n");
+        printf("| 修改密码         请按 6      |\n");
         printf("+-------------------------------+\n");
         printf("请选择：\n");
         scanf("%d",&xuanze);
@@ -103,14 +107,20 @@ void mainmenu(void* arg)
 				admin_adduser(client_sockfd,server_userinfo);
 				break;
             case 5: system("clear");
-                    //closeAnAcount();
-                    break;
+            	admin_close_account(client_sockfd,server_userinfo);
+				break;
             case 6: system("clear");
-                    //queryall();
-                    break;
+				admin_change_password(client_sockfd,server_userinfo);
+				break;
+            case 7: system("clear");
+				admin_fuzzy_query(client_sockfd,server_userinfo);
+				break;
             case 0: system("clear");
-
-                    break;
+            	free_struct(client_userinfo);
+				free_struct(server_userinfo);
+				close(*client_sockfd);//关闭套接字 
+				exit(0);
+				break;
             default:system("clear");
                     printf("您输入的有误！\n");
                     getchar();
@@ -252,6 +262,112 @@ void admin_adduser(void* arg,client_user *x)
 
 	return;
 }
+void admin_close_account(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	int id = 0;
+	char password[9];
+	printf("请输入销户id:\n");
+	scanf("%d",&id);
+	printf("请输入密码:\n");
+	scanf("%8s",password);
+	x->id = id;
+	snprintf(x->password,sizeof(x->password),"%s",password);
+	/*通过账户id向服务器发送消息，获取用户信息*/
+	x->msg = USERINFO_BY_ID;
+	if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
+	{
+		printf("send error\n");
+	}
+	if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+	{
+		printf("recv error");
+	}
+	if(1 == server_userinfo->flag)
+	{
+		close_acount(client_sockfd,server_userinfo);
+	}
+	else
+	{
+		printf("账户id有误！！！\n");
+	}
+	return;
+}
+void admin_change_password(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	int id = 0;
+	char password[9];
+	printf("请输入账户id:\n");
+	scanf("%d",&id);
+	printf("请输入密码:\n");
+	scanf("%8s",password);
+	x->id = id;
+	snprintf(x->password,sizeof(x->password),"%s",password);
+	/*通过账户id向服务器发送消息，获取用户信息*/
+	x->msg = USERINFO_BY_ID;
+	if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
+	{
+		printf("send error\n");
+	}
+	if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+	{
+		printf("recv error");
+	}
+	if(1 == server_userinfo->flag)
+	{
+		change_password(client_sockfd,server_userinfo);
+	}
+	else
+	{
+		printf("账户id有误！！！\n");
+	}
+	return;
+}
+void admin_fuzzy_query(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	char name[9];
+	char password[9];
+	char str[9];
+	//float money = -1;
+	printf("请输入账户名称:\n");
+	scanf("%8s",name);
+	printf("请输入账户密码:\n");
+	scanf("%8s",password);
+	snprintf(x->name,sizeof(x->name),"%s",name);
+	snprintf(x->password,sizeof(x->password),"%s",password);
+	/*再次验证管理员身份*/
+	x->msg = USER_LOGIN;
+	if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
+	{
+		printf("send error\n");
+	}
+	if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+	{
+		printf("recv error");
+	}
+	if(ADMIN_FLAG == server_userinfo->flag)
+	{
+		printf("请输入你要模糊查询的内容:\n");
+		scanf("%8s",str);
+		fuzzy_quiry(str);
+	}
+	else
+	{
+		printf("非管理员操作！退出登录！！！\n");
+		welcome(client_sockfd);
+	}
+
+	return;
+}
+void fuzzy_quiry(char* x)
+{
+
+}
 /*登录函数*/
 int login(void* arg)
 {
@@ -276,7 +392,7 @@ int login(void* arg)
     {
         printf("recv error");
     }
-    if(1 == server_userinfo->flag)
+    if(ADMIN_FLAG == server_userinfo->flag)
     {
     	//printf("%d\n",server_userinfo->flag);
     	if (0==strcmp(server_userinfo->name,"admin"))
@@ -286,7 +402,6 @@ int login(void* arg)
 				//超级管理员界面
 				printf("欢迎进入超级管理员界面！！！\n");
 				mainmenu(client_sockfd);
-
 				return SUCCESS;
 			}
 			else
@@ -295,25 +410,24 @@ int login(void* arg)
 				return FALSE;
 			}
 		}
-		else
+    }
+    else if(1 == server_userinfo->flag)
+    {
+    	while(1)
 		{
-			while(1)
+			printf("按回车键进入主菜单！！！\n");
+			getchar();
+			system("clear");
+			ret = client_usermenu(client_sockfd,server_userinfo);
+			if(1 == ret)
 			{
-				printf("按回车键进入主菜单！！！\n");
-				getchar();
-				system("clear");
-				ret = client_usermenu(client_sockfd,server_userinfo);
-				if(1 == ret)
-				{
-					break;
-				}
+				break;
 			}
-
-			printf("%d\n",server_userinfo->msg);
-			printf("123\n");
-			printf("%s-%s\n",server_userinfo->name,server_userinfo->password);
-			return 0;
 		}
+		printf("%d\n",server_userinfo->msg);
+		printf("123\n");
+		printf("%s-%s\n",server_userinfo->name,server_userinfo->password);
+		return 0;
     }
     else if(NO_USER_INFO == server_userinfo->flag)
     {
@@ -333,6 +447,7 @@ int login(void* arg)
 		printf("密码错误！！！\n");
 		return FALSE;
     }
+    return 0;
 
 }
 
@@ -414,6 +529,8 @@ void welcome(void* arg)
             	b = regester(client_sockfd);
             	break;
             case 0: system("clear");
+            	free_struct(client_userinfo);
+            	free_struct(server_userinfo);
             	close(*client_sockfd);//关闭套接字 
 				exit(0);
             	break;

@@ -30,6 +30,8 @@
 #define USER_TRANSFER 1009 //用户转账
 #define USERINFO_BY_ID 1010//获取用户信息通过账户id
 
+#define ADMIN_FLAG 110
+
 
 
 typedef struct client_user
@@ -51,6 +53,7 @@ client_user* client_userinfo = NULL;
 client_user* server_userinfo = NULL;
 
 /*自定义函数*/
+void free_struct(client_user *x);
 int login(void* arg);/*登录操作*/
 //int regester();/*注册操作*/
 void welcome(void* arg);/*欢迎界面*/
@@ -69,5 +72,8 @@ void admin_deposit(void* arg,client_user *x);
 void admin_withdraw(void* arg,client_user *x);
 void admin_query(void* arg,client_user *x);
 void admin_adduser(void* arg,client_user *x);
+void admin_close_account(void* arg,client_user *x);
+void admin_change_password(void* arg,client_user *x);
+void admin_fuzzy_query(void* arg,client_user *x);
 
 #endif /* TCP_CLIENT_H_ */

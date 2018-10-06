@@ -203,8 +203,15 @@ void* message_handle(void *arg)
             }
             else
             {
-            	printf("用户%s登录成功！！！\n",server_userinfo->name);
-            	server_userinfo->flag = 1;
+            	if(server_userinfo->flag == ADMIN_FLAG)
+            	{
+            		server_userinfo->flag = ADMIN_FLAG;
+            	}
+            	else
+            	{
+					printf("用户%s登录成功！！！\n",server_userinfo->name);
+					server_userinfo->flag = 1;
+            	}
             }
             send(*sockfd,server_userinfo, sizeof(client_user),0);
         }
@@ -417,7 +424,7 @@ int login()
 					{
 						printf("hello client you are admin \n");
 						s1_to_s2(userinfo,server_userinfo);
-						server_userinfo->flag = 1;
+						server_userinfo->flag = ADMIN_FLAG;
 						fclose(fp);
 						return SUCCESS;
 					}
