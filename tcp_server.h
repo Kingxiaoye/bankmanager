@@ -67,32 +67,29 @@ typedef struct client_user
 
 /*全局变量-用户信息*/
 
-client_user* client_userinfo = NULL;
-client_user* server_userinfo = NULL;
-user_info* userinfo = NULL;
 
 /*自定义函数*/
-int login();/*登录操作*/
-int regester();/*注册操作*/
-int desposit();/*存钱操作*/
-int userwithdraw();/*取钱操作*/
-void welcome();/*欢迎界面*/
+int login(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);/*登录操作*/
+int regester(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);/*注册操作*/
+int desposit(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);/*存钱操作*/
+int userwithdraw(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);/*取钱操作*/
+void welcome(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);/*欢迎界面*/
 void* message_handle(void *arg);
 void free_struct(client_user *x);
 void client_userinfo_init(client_user* x);
 void userinfo_init(user_info* x);
 void s1_to_s2(user_info* x1,client_user* x2);
 void s2_to_s1(client_user* x2,user_info* x1);
-int user_info_match();
-int user_info_match_by_id();
+int user_info_match(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);
+int user_info_match_by_id(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);
 int save(user_info* ap);
-int user_quiry();
-int user_transfer();
-int user_change_password();
-int user_close_account();
-int get_userinfo_by_id();
-void create_admin();
-int fuzzy_quiry(void *arg);
+int user_quiry(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);
+int user_transfer(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);
+int user_change_password(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);
+int user_close_account(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);
+int get_userinfo_by_id(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);
+void create_admin(user_info* userinfo);
+int fuzzy_quiry(void *arg,user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo);
 
 
 

@@ -46,11 +46,8 @@ int main(int argc, char *argv[])
     listen(server_sockfd,5);
     sin_size=sizeof(struct sockaddr_in);
 
-    /*结构体申请内存并初始化*/
-    client_userinfo=(client_user*)malloc(sizeof(client_user));
-    server_userinfo=(client_user*)malloc(sizeof(client_user));
-    userinfo=(user_info*)malloc(sizeof(user_info));
-    create_admin();
+
+
 
     while(1)
     {
@@ -70,10 +67,7 @@ int main(int argc, char *argv[])
         }
         printf("pthread_create success\n");
     }
-    free_struct(client_userinfo);
-    free_struct(server_userinfo);
-    free(userinfo);
-    userinfo = NULL;
+
 
     close(server_sockfd);
     return 0;
@@ -93,7 +87,7 @@ void client_userinfo_init(client_user* x)
 	x->tmp_money = 0;
 }
 /*创建一个管理员，存在一个则返回*/
-void create_admin()
+void create_admin(user_info* userinfo)
 {
 	FILE* fp = NULL;
 	int count = 0;
@@ -157,6 +151,17 @@ void s2_to_s1(client_user* x2,user_info* x1)
 
 void* message_handle(void *arg)
 {
+
+	client_user* client_userinfo = NULL;
+	client_user* server_userinfo = NULL;
+	user_info* userinfo = NULL;
+
+	/*结构体申请内存并初始化*/
+	client_userinfo=(client_user*)malloc(sizeof(client_user));
+	server_userinfo=(client_user*)malloc(sizeof(client_user));
+	userinfo=(user_info*)malloc(sizeof(user_info));
+
+	create_admin(userinfo);
     int* sockfd = arg;
 
     int len = 0;
@@ -185,7 +190,7 @@ void* message_handle(void *arg)
         if(USER_LOGIN==client_userinfo->msg)
         {
         	printf("服务端收到USER_LOGIN消息！！！\n");
-        	ret = login();
+        	ret = login(userinfo,client_userinfo,server_userinfo);
             if(PASSWORD_ERROR == ret)
             {
             	printf("登录失败,密码错误！！！\n");
@@ -218,7 +223,7 @@ void* message_handle(void *arg)
         else if(USER_DESPOSIT==client_userinfo->msg)
         {
         	printf("服务端收到USER_DESPOSIT消息！！！\n");
-        	ret = desposit();
+        	ret = desposit(userinfo,client_userinfo,server_userinfo);
         	if(PASSWORD_ERROR == ret)
         	{
         		printf("存钱失败，密码错误！！！\n");
@@ -239,7 +244,7 @@ void* message_handle(void *arg)
         else if(USER_REGESTER == client_userinfo->msg)
         {
         	printf("服务端收到USER_REGESTER消息！！！\n");
-        	ret = regester();
+        	ret = regester(userinfo,client_userinfo,server_userinfo);
         	if(NAME_OCCUPY == ret)
         	{
         		printf("该名字已注册过！！！\n");
@@ -256,7 +261,7 @@ void* message_handle(void *arg)
         else if(USER_WITHDRAW == client_userinfo->msg)
         {
         	printf("服务端收到USER_WITHDRAW消息！！！\n");
-        	ret = userwithdraw();
+        	ret = userwithdraw(userinfo,client_userinfo,server_userinfo);
         	if(SUCCESS == ret)
         	{
         		s1_to_s2(userinfo,server_userinfo);
@@ -272,7 +277,7 @@ void* message_handle(void *arg)
         else if(USER_QUIRY == client_userinfo->msg)
         {
         	printf("服务端收到USER_QUIRY消息！！！\n");
-        	ret = user_quiry();
+        	ret = user_quiry(userinfo,client_userinfo,server_userinfo);
         	if(SUCCESS == ret)
 			{
 				s1_to_s2(userinfo,server_userinfo);
@@ -296,7 +301,7 @@ void* message_handle(void *arg)
         else if(USER_TRANSFER == client_userinfo->msg)
         {
         	printf("服务端收到USER_TRANSFER消息！！！\n");
-        	ret = user_transfer();
+        	ret = user_transfer(userinfo,client_userinfo,server_userinfo);
         	if(SUCCESS == ret)
 			{
 				s1_to_s2(userinfo,server_userinfo);
@@ -316,7 +321,7 @@ void* message_handle(void *arg)
         else if(USER_CHANGE_PASSWORD == client_userinfo->msg)
 		{
         	printf("服务端收到USER_CHANGE_PASSWORD消息！！！\n");
-        	ret = user_change_password();
+        	ret = user_change_password(userinfo,client_userinfo,server_userinfo);
         	if(SUCCESS == ret)
 			{
 				s1_to_s2(userinfo,server_userinfo);
@@ -332,7 +337,7 @@ void* message_handle(void *arg)
         else if(USER_CLOSE_ACCOUNT == client_userinfo->msg)
         {
         	printf("服务端收到USER_CLOSE_ACCOUNT消息！！！\n");
-        	ret = user_close_account();
+        	ret = user_close_account(userinfo,client_userinfo,server_userinfo);
 			if(SUCCESS == ret)
 			{
 				s1_to_s2(userinfo,server_userinfo);
@@ -348,7 +353,7 @@ void* message_handle(void *arg)
         else if(USERINFO_BY_ID == client_userinfo->msg)
         {
         	printf("收到USERINFO_BY_ID信息！！！\n");
-        	ret = get_userinfo_by_id();
+        	ret = get_userinfo_by_id(userinfo,client_userinfo,server_userinfo);
         	if(SUCCESS == ret)
 			{
 				s1_to_s2(userinfo,server_userinfo);
@@ -364,9 +369,15 @@ void* message_handle(void *arg)
         else if(FUZZY_QUIRY == client_userinfo->msg)
         {
         	printf("收到FUZZY_QUIRY信息！！！\n");
-        	fuzzy_quiry(sockfd);
+        	fuzzy_quiry(sockfd,userinfo,client_userinfo,server_userinfo);
         }
     }
+
+    //printf("kkkkkkkkkkkkk\n");
+    free_struct(client_userinfo);
+    free_struct(server_userinfo);
+    free(userinfo);
+    userinfo = NULL;
     close(*sockfd);
     return NULL;
 }
@@ -410,7 +421,7 @@ int save(user_info* ap)
     return flag;
 }
 
-int login()
+int login(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
     int count = 0;
     int flag = 0;
@@ -503,12 +514,12 @@ int login()
 	return SUCCESS;
 }
 
-int desposit()
+int desposit(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
 	int flag = 0;
 	float money = -1;
 	int ret = 0;
-	ret = user_info_match();
+	ret = user_info_match(userinfo,client_userinfo,server_userinfo);
 	printf("desposit ret :%d\n",ret);
 	if(ret == SUCCESS)
 	{
@@ -528,13 +539,13 @@ int desposit()
 	return ret;
 }
 
-int regester()
+int regester(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
     int count=0;
     int ret = 0;
     FILE *fp;
     int last=initnumber;
-    ret = user_info_match();
+    ret = user_info_match(userinfo,client_userinfo,server_userinfo);
     if(SUCCESS == ret)
     {
         printf("用户名被占用！！！\n");
@@ -563,11 +574,11 @@ int regester()
     return 0;
 }
 
-int userwithdraw()
+int userwithdraw(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
     float get_money = -1;
     int ret = 0;
-    ret = user_info_match();
+    ret = user_info_match(userinfo,client_userinfo,server_userinfo);
     if(SUCCESS == ret)
     {
     	get_money = client_userinfo->tmp_money;
@@ -590,7 +601,7 @@ int userwithdraw()
 /*在本地数据库匹配客户端发送来的用户信息，匹配成功则返回SUCCESS，并将
  * 用户信息存到全局变量userinfo中
  * */
-int user_info_match()
+int user_info_match(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
 	int count = 0;
 	int flag = 0;
@@ -663,7 +674,7 @@ int user_info_match()
 	return SUCCESS;
 }
 
-int user_info_match_by_id()
+int user_info_match_by_id(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
 	int count = 0;
 	int flag = 0;
@@ -737,10 +748,10 @@ int user_info_match_by_id()
 
 	return SUCCESS;
 }
-int user_quiry()
+int user_quiry(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
 	int ret = 0;
-	ret = user_info_match();
+	ret = user_info_match(userinfo,client_userinfo,server_userinfo);
 	if(ret == SUCCESS)
 	{
 		return SUCCESS;
@@ -752,7 +763,7 @@ int user_quiry()
 	//return 0;
 }
 
-int user_transfer()
+int user_transfer(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
 	user_info* transfer_userinfo = NULL;
 	FILE* fp;
@@ -778,7 +789,7 @@ int user_transfer()
 		}
 	}
 	fclose(fp);
-	ret = user_info_match();
+	ret = user_info_match(userinfo,client_userinfo,server_userinfo);
 	if(ret == SUCCESS)
 	{
 		printf("%s--%f\n",transfer_userinfo->name,transfer_userinfo->money);
@@ -814,10 +825,10 @@ int user_transfer()
 	return 0;
 }
 
-int user_change_password()
+int user_change_password(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
 	int ret = 0;
-	ret = user_info_match();
+	ret = user_info_match(userinfo,client_userinfo,server_userinfo);
 	/*新密码也可以和原密码相同*/
 	if(ret == PASSWORD_ERROR||ret == SUCCESS)
 	{
@@ -839,10 +850,10 @@ int user_change_password()
 	}
 	return 0;
 }
-int user_close_account()
+int user_close_account(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
 	int ret = 0;
-	ret = user_info_match();
+	ret = user_info_match(userinfo,client_userinfo,server_userinfo);
 	/*新密码也可以和原密码相同*/
 	if(ret == SUCCESS)
 	{
@@ -864,17 +875,17 @@ int user_close_account()
 	return 0;
 }
 
-int get_userinfo_by_id()
+int get_userinfo_by_id(user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
 	int ret = 0;
-	ret = user_info_match_by_id();
+	ret = user_info_match_by_id(userinfo,client_userinfo,server_userinfo);
 	if(ret == SUCCESS)
 	{
 		return SUCCESS;
 	}
 	return ret;
 }
-int fuzzy_quiry(void *arg)
+int fuzzy_quiry(void *arg,user_info* userinfo,client_user* client_userinfo,client_user* server_userinfo)
 {
 	int* sockfd = arg;
 	char str[9];
