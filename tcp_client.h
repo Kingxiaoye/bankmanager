@@ -29,8 +29,12 @@
 #define USER_CHANGE_PASSWORD 1008 //修改密码
 #define USER_TRANSFER 1009 //用户转账
 #define USERINFO_BY_ID 1010//获取用户信息通过账户id
+#define FUZZY_QUIRY 1011 //模糊查询
 
+/*管理员登录标志位*/
 #define ADMIN_FLAG 110
+/*模糊查询标志位*/
+#define FUZZY_QUIRY_END 120
 
 
 

@@ -361,6 +361,11 @@ void* message_handle(void *arg)
 			}
 			send(*sockfd,server_userinfo, sizeof(client_user),0);
         }
+        else if(FUZZY_QUIRY == client_userinfo->msg)
+        {
+        	printf("收到FUZZY_QUIRY信息！！！\n");
+        	fuzzy_quiry(sockfd);
+        }
     }
     close(*sockfd);
     return NULL;
@@ -868,4 +873,35 @@ int get_userinfo_by_id()
 		return SUCCESS;
 	}
 	return ret;
+}
+int fuzzy_quiry(void *arg)
+{
+	int* sockfd = arg;
+	char str[9];
+	int count = -1;
+	FILE* fp = NULL;
+	snprintf(str,sizeof(str),"%s",client_userinfo->transfer_name);
+	fp = fopen("bank","rb+");
+	if(fp!=NULL)
+	{
+		while(!feof(fp))
+		{
+			count=fread(userinfo,sizeof(user_info),1,fp);
+			if(count>0)
+			{
+				if(strstr(userinfo->name,str))
+				{
+					s1_to_s2(userinfo,server_userinfo);
+					server_userinfo->flag = 1;
+					send(*sockfd,server_userinfo, sizeof(client_user),0);
+				}
+
+			}
+		}
+		/*结束设置标志位发送结构体，告诉客户端结束搜索*/
+		s1_to_s2(userinfo,server_userinfo);
+		server_userinfo->flag = FUZZY_QUIRY_END;
+		send(*sockfd,server_userinfo, sizeof(client_user),0);
+	}
+	return 0;
 }

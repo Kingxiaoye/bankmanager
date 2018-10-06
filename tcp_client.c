@@ -88,6 +88,7 @@ void mainmenu(void* arg)
         printf("| 取款  请按 2     销户  请按 5 |\n");
         printf("| 查询  请按 3     退出  请按 0 |\n");
         printf("| 修改密码         请按 6      |\n");
+        printf("| 模糊查询         请按 7      |\n");
         printf("+-------------------------------+\n");
         printf("请选择：\n");
         scanf("%d",&xuanze);
@@ -330,6 +331,7 @@ void admin_fuzzy_query(void* arg,client_user *x)
 {
 	int* client_sockfd = arg;
 	int len = 0;
+	int i = 0;
 	char name[9];
 	char password[9];
 	char str[9];
@@ -354,7 +356,34 @@ void admin_fuzzy_query(void* arg,client_user *x)
 	{
 		printf("请输入你要模糊查询的内容:\n");
 		scanf("%8s",str);
-		fuzzy_quiry(str);
+		/*用结构体的transfer_name保存用来模糊查询的字符串*/
+		snprintf(x->transfer_name,sizeof(x->transfer_name),"%s",str);
+		x->msg = FUZZY_QUIRY;
+		if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
+		{
+			printf("send error\n");
+		}
+		while((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)>0))
+		{
+			if(1 == server_userinfo->flag)
+			{
+				i++;
+				client_display(server_userinfo);
+			}
+			else if(FUZZY_QUIRY_END == server_userinfo->flag)
+			{
+				if(i == 0)
+				{
+					printf("未找到相关内容！！！\n");
+				}
+				break;
+			}
+			else
+			{
+				printf("未找到相关内容！！！\n");
+			}
+		}
+
 	}
 	else
 	{
@@ -364,10 +393,7 @@ void admin_fuzzy_query(void* arg,client_user *x)
 
 	return;
 }
-void fuzzy_quiry(char* x)
-{
 
-}
 /*登录函数*/
 int login(void* arg)
 {

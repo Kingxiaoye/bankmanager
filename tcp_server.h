@@ -22,8 +22,10 @@
 #define ACCOUNT_ID_ERROR 6
 #define OPEN_FILE_ERROR 7
 #define UPDATE_USERINFO_ERROR 8
-
+/*管理员登录标志位*/
 #define ADMIN_FLAG 110
+/*模糊查询标志位*/
+#define FUZZY_QUIRY_END 120
 
 #define initnumber 100000001 //初始账户号，后续账户加1操作
 /*消息id定义*/
@@ -37,7 +39,7 @@
 #define USER_CHANGE_PASSWORD 1008 //修改密码
 #define USER_TRANSFER 1009 //用户转账
 #define USERINFO_BY_ID 1010  //获取用户信息通过账户id
-
+#define FUZZY_QUIRY 1011 //模糊查询
 
 /*结构体*/
 typedef struct user_info
@@ -90,6 +92,7 @@ int user_change_password();
 int user_close_account();
 int get_userinfo_by_id();
 void create_admin();
+int fuzzy_quiry(void *arg);
 
 
 
