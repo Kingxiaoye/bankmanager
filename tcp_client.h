@@ -1,8 +1,5 @@
 /*
- * tcp_client.h
- *
- *  Created on: 2018年10月1日
- *      Author: wangye11
+
  */
 
 #ifndef TCP_CLIENT_H_

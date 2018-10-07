@@ -1,8 +1,5 @@
 /*
- * tcp_server.h
- *
- *  Created on: 2018年10月1日
- *      Author: wangye11
+
  */
 
 #ifndef TCP_SERVER_H_
