@@ -88,6 +88,7 @@ void mainmenu(void* arg)
         printf("| 查询  请按 3     退出  请按 0 |\n");
         printf("| 修改密码         请按 6      |\n");
         printf("| 模糊查询         请按 7      |\n");
+        printf("| 用户转账         请按 8      |\n");
         printf("+-------------------------------+\n");
         printf("请选择：\n");
         scanf("%d",&xuanze);
@@ -114,6 +115,9 @@ void mainmenu(void* arg)
 				break;
             case 7: system("clear");
 				admin_fuzzy_query(client_sockfd,server_userinfo);
+				break;
+            case 8: system("clear");
+				admin_transfer(client_sockfd,server_userinfo);
 				break;
             case 0: system("clear");
             	free_struct(client_userinfo);
@@ -404,6 +408,39 @@ void admin_fuzzy_query(void* arg,client_user *x)
 		welcome(client_sockfd);
 	}
 
+	return;
+}
+void admin_transfer(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	int id = 0;
+	char password[9];
+	printf("请输入账户id:\n");
+	scanf("%d",&id);
+	printf("请输入密码:\n");
+	scanf("%8s",password);
+	x->id = id;
+	snprintf(x->password,sizeof(x->password),"%s",password);
+	/*通过账户id向服务器发送消息，获取用户信息*/
+	x->msg = USERINFO_BY_ID;
+	if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
+	{
+		printf("send error\n");
+	}
+	if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+	{
+		printf("recv error");
+	}
+	if(1 == server_userinfo->flag)
+	{
+		server_userinfo->admin_operate = 1;
+		usertransfer(client_sockfd,server_userinfo);
+	}
+	else
+	{
+		printf("账户id有误！！！\n");
+	}
 	return;
 }
 
@@ -1153,8 +1190,6 @@ void user_quiry_log(void* arg,client_user *x)
 			}
 			if(flag == 1)
 			{
-				printf("*********************************\n");
-				printf("*********************************\n");
 				printf("*********************************\n");
 				printf("以上是用户%s最新的日志！！！\n",server_userinfo->name);
 				return;

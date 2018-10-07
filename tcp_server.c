@@ -402,7 +402,13 @@ void* message_handle(void *arg)
 			{
 
 				s1_to_s2(userinfo,server_userinfo);
+				server_userinfo->tmp_money = client_userinfo->tmp_money;
+				server_userinfo->transfer_id = client_userinfo->transfer_id;
 				server_userinfo->flag = 1;
+
+				snprintf(command,sizeof(command),"时间:%s 用户%s向账户:%d转账%f成功",\
+				get_time(),client_userinfo->name,client_userinfo->transfer_id,client_userinfo->tmp_money);
+				write_running_log(command,client_userinfo->name);
 				printf("转账成功！！！\n");
 			}
         	else if(UPDATE_USERINFO_ERROR == ret)
@@ -966,6 +972,7 @@ int user_transfer(user_info* userinfo,client_user* client_userinfo,client_user* 
 	FILE* fp;
 	int count = -1;
 	int ret = 0;
+	char command[COMMAND_LEN] = {0};
 	transfer_userinfo=(user_info*)malloc(sizeof(user_info));
 	userinfo_init(transfer_userinfo);
 	//strncpy(transfer_userinfo->name,client_userinfo->transfer_name,sizeof(transfer_userinfo->name));
@@ -989,14 +996,18 @@ int user_transfer(user_info* userinfo,client_user* client_userinfo,client_user* 
 	ret = user_info_match(userinfo,client_userinfo,server_userinfo);
 	if(ret == SUCCESS)
 	{
-		printf("%s--%f\n",transfer_userinfo->name,transfer_userinfo->money);
+		//printf("%s--%f\n",transfer_userinfo->name,transfer_userinfo->money);
 		transfer_userinfo->money += client_userinfo->tmp_money;
-		printf("%f\n",transfer_userinfo->money);
+		//printf("%f\n",transfer_userinfo->money);
 		if(0 == save(transfer_userinfo))
 		{
 			userinfo->money -= client_userinfo->tmp_money;
 			if(0 == save(userinfo))
 			{
+				snprintf(command,sizeof(command),"时间:%s 用户%s收到账户:%d转账%f成功",\
+				get_time(),transfer_userinfo->name,client_userinfo->id,client_userinfo->tmp_money);
+				write_running_log(command,transfer_userinfo->name);
+
 				free(transfer_userinfo);
 				transfer_userinfo = NULL;
 				return SUCCESS;
