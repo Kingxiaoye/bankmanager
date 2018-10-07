@@ -38,8 +38,6 @@ int main(int argc, char *argv[])
 
     client_userinfo=(client_user*)malloc(sizeof(client_user));
     server_userinfo=(client_user*)malloc(sizeof(client_user));
-    client_userinfo_init(client_userinfo);
-    client_userinfo_init(server_userinfo);
 
     welcome(client_sockfd);
 
@@ -63,8 +61,8 @@ void free_struct(client_user *x)
 
 void client_userinfo_init(client_user* x)
 {
-    strncpy(x->password,"null",4);
-    strncpy(x->name,"null",4);
+	snprintf(x->name,sizeof(x->name),"%s","null111");
+	snprintf(x->password,sizeof(x->password),"%s","null");
     x->msg = 0;
     x->id = 0;
     x->money  = 0;
@@ -343,9 +341,9 @@ void admin_fuzzy_query(void* arg,client_user *x)
 	char password[9];
 	char str[9];
 	//float money = -1;
-	printf("请输入账户名称:\n");
+	printf("请输入管理员账户名称:\n");
 	scanf("%8s",name);
-	printf("请输入账户密码:\n");
+	printf("请输入管理员账户密码:\n");
 	scanf("%8s",password);
 	snprintf(x->name,sizeof(x->name),"%s",name);
 	snprintf(x->password,sizeof(x->password),"%s",password);
@@ -396,7 +394,13 @@ void admin_fuzzy_query(void* arg,client_user *x)
 	}
 	else
 	{
-		printf("非管理员操作！退出登录！！！\n");
+		printf("管理员身份验证失败！退出登录！！！\n");
+		x->msg = USER_EXIT;
+		snprintf(x->name,sizeof(x->name),"%s","admin");
+		if((len=send(*client_sockfd,x,sizeof(client_user),0)<0))
+		{
+			printf("send error\n");
+		}
 		welcome(client_sockfd);
 	}
 
@@ -459,9 +463,9 @@ int login(void* arg)
 				break;
 			}
 		}
-		printf("%d\n",server_userinfo->msg);
-		printf("123\n");
-		printf("%s-%s\n",server_userinfo->name,server_userinfo->password);
+		//printf("%d\n",server_userinfo->msg);
+		//printf("123\n");
+		//printf("%s-%s\n",server_userinfo->name,server_userinfo->password);
 		return 0;
     }
     else if(NO_USER_INFO == server_userinfo->flag)
@@ -528,14 +532,14 @@ int regester(void* arg)
 		printf("注册失败，用户名已存在！！！\n");
 		return FALSE;
 	}
-
-
-
 }
 
 /*欢迎界面*/
 void welcome(void* arg)
 {
+	client_userinfo_init(client_userinfo);
+	client_userinfo_init(server_userinfo);
+
     int msg = -1;
     int* client_sockfd = arg;
     do
@@ -644,6 +648,7 @@ int client_usermenu(void* arg,client_user *x)
     printf("| 销户      请按 4  |\n");
     printf("| 转账      请按 5  |\n");
     printf("| 修改密码   请按 6  |\n");
+    printf("| 查询日志   请按 7  |\n");
     printf("| 退出  请按 0  |\n");
     printf("+-------------------------------+\n");
     printf("请选择：\n");
@@ -668,6 +673,9 @@ int client_usermenu(void* arg,client_user *x)
         	break;
         case 6: system("clear");
         	change_password(client_sockfd,x);
+        	break;
+        case 7: system("clear");
+        	user_quiry_log(client_sockfd,x);
         	break;
         case 0: system("clear");
         	close(*client_sockfd);//关闭套接字 
@@ -1091,3 +1099,82 @@ void close_acount(void* arg,client_user *x)
 	return;
 
 }
+
+
+void user_quiry_log(void* arg,client_user *x)
+{
+	int* client_sockfd = arg;
+	int len = 0;
+	int i = 0;
+	char buf[1024];
+	char password[9];
+	char log_end[1024];
+	int flag = 0;
+
+	/*第一次发消息确认是本人操作*/
+	for(i = 0;i<3;i++)
+	{
+		printf("查询日志前，请输入原密码：\n");
+		scanf("%8s",password);
+		fflush(stdin);
+		snprintf(x->password, sizeof(password),"%s",password);
+		x->msg = USER_QUIRY;
+		if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+		{
+			printf("send check userinfo msg error\n");
+		}
+
+		if((len=recv(*client_sockfd,server_userinfo,sizeof(client_user),0)<0))
+		{
+			printf("recv check userinfo msg error");
+		}
+		if(1 == server_userinfo->flag)
+		{
+
+			x->msg = USER_QUIRY_LOG;
+			/*第二次发送消息，查询日志*/
+			if((len=send(*client_sockfd,x,sizeof(client_user),0))<0)
+			{
+				printf("send USER_QUIRY_LOG  msg error\n");
+			}
+
+			while((len=recv(*client_sockfd,buf,sizeof(buf),0)>0))
+			{
+				if(0 == strcmp(buf,"log end"))
+				{
+					//snprintf(log_end,sizeof(log_end),"%s","1");
+					//printf("123\n");
+					getchar();
+					flag = 1;
+					break;
+
+				}
+				printf("%s\n",buf);
+			}
+			if(flag == 1)
+			{
+				printf("*********************************\n");
+				printf("*********************************\n");
+				printf("*********************************\n");
+				printf("以上是用户%s最新的日志！！！\n",server_userinfo->name);
+				return;
+			}
+
+		}
+		else if(0 == server_userinfo->flag)
+		{
+			system("clear");
+			printf("原密码输入错误！！！\n");
+			//welcome(client_sockfd);
+			continue;
+		}
+	}
+	if(3 == i)
+	{
+		printf("你输入错误已经超过3次！请重新登录！！！\n");
+		welcome(client_sockfd);
+	}
+	return;
+
+}
+

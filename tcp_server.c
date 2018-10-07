@@ -17,10 +17,16 @@
 #include "message_log.h"
 #include <time.h>
 
+
+pthread_mutex_t mutex;
+
 /*时间全局变量*/
 char mytime[20] = "";
 int main(int argc, char *argv[])
 {
+	/*初始化互斥锁*/
+	pthread_mutex_init(&mutex,NULL);
+
     int server_sockfd;//服务器端套接字    
     int *client_sockfd;//客户端套接字    
     pthread_t thread = -1;
@@ -191,7 +197,7 @@ void* message_handle(void *arg)
 
     while((len=recv(*sockfd,client_userinfo, sizeof(client_user),0))>0)
     {
-
+    	pthread_mutex_lock(&mutex);
     	int ret = 0;
     	/*每次收到新消息，要把服务端结构体和用户信息结构体初始化*/
         client_userinfo_init(server_userinfo);
@@ -508,7 +514,38 @@ void* message_handle(void *arg)
 			get_time(),client_userinfo->name,client_userinfo->transfer_name);
 			write_running_log(command,admin_name);
         }
+        else if(USER_EXIT == client_userinfo->msg)
+        {
+        	printf("收到身份异常退出USER_EXIT信息！！！\n");
+        	snprintf(command,sizeof(command),"时间:%s %s身份验证异常！退出系统！！！",\
+    		get_time(),client_userinfo->name);
+    		write_running_log(command,client_userinfo->name);
+        }
+        else if(USER_QUIRY_LOG == client_userinfo->msg)
+        {
+        	printf("收到USER_QUIRY_LOG信息！！！\n");
+        	FILE* fp;
+        	char file_name[512];
+        	char buf[1024];
+        	snprintf(file_name,sizeof(file_name),"%s/%s",LOG_PATH,client_userinfo->name);
+        	fp = fopen(file_name,"rb+");
+        	while(!feof(fp))
+        	{
+        		fgets(buf,sizeof(buf),fp);
+        		//printf("%s\n",buf);
+        		send(*sockfd,buf, sizeof(buf),0);
+
+        	}
+        	fclose(fp);
+        	snprintf(buf,sizeof(buf),"%s","log end");
+        	send(*sockfd,buf, sizeof(buf),0);
+
+
+
+        }
+        pthread_mutex_unlock(&mutex);
     }
+    printf("%s\n",client_userinfo->name);
     if(0 == strncmp(client_userinfo->name,"admin",sizeof(client_userinfo->name)))
     {
     	snprintf(command,sizeof(command),"时间:%s [管理员操作]管理员%s退出系统",\
@@ -529,7 +566,7 @@ void* message_handle(void *arg)
     	else
     	{
 			snprintf(command,sizeof(command),"时间:%s 用户%s退出系统",\
-			get_time(),server_userinfo->name);
+			get_time(),client_userinfo->name);
 			write_running_log(command,client_userinfo->name);
     	}
     }

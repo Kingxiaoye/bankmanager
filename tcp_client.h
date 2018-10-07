@@ -30,6 +30,7 @@
 #define USER_TRANSFER 1009 //用户转账
 #define USERINFO_BY_ID 1010//获取用户信息通过账户id
 #define FUZZY_QUIRY 1011 //模糊查询
+#define USER_QUIRY_LOG 1012 //日志查询
 
 /*管理员登录标志位*/
 #define ADMIN_FLAG 110
@@ -80,5 +81,6 @@ void admin_adduser(void* arg,client_user *x);
 void admin_close_account(void* arg,client_user *x);
 void admin_change_password(void* arg,client_user *x);
 void admin_fuzzy_query(void* arg,client_user *x);
+void user_quiry_log(void* arg,client_user *x);
 
 #endif /* TCP_CLIENT_H_ */

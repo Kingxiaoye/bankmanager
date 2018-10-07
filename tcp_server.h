@@ -40,7 +40,11 @@
 #define USER_TRANSFER 1009 //用户转账
 #define USERINFO_BY_ID 1010  //获取用户信息通过账户id
 #define FUZZY_QUIRY 1011 //模糊查询
+#define USER_QUIRY_LOG 1012 //日志查询
 
+
+
+#define LINK(PATH,FILENAME) PATH/##FILENAME
 /*结构体*/
 typedef struct user_info
 {
@@ -67,6 +71,7 @@ typedef struct client_user
 }client_user,server_user;
 
 /*全局变量-用户信息*/
+
 
 
 /*自定义函数*/
